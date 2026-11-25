@@ -16,7 +16,7 @@ SwiftUI, iOS 17+, yalnızca iPhone, dikey ekran. İnternet, reklam, satın alma 
    ```sh
    brew install xcodegen node
    ```
-3. `project.yml` içindeki `com.example` ile başlayan iki değeri kendi kimliğinle değiştir. Eski uygulamanın kimliğini (`com.eroplayer.app`) kullanma.
+3. Paket kimliği `com.ojfamilia.gisetabelasi` (`project.yml`). Eski uygulamanın kimliği (`com.eroplayer.app`) kullanılmaz.
 4. Projeyi üret ve aç:
    ```sh
    cd ios
@@ -34,6 +34,12 @@ cd ios/GameCore && swift test    # oyun mantığı: her bölüm baştan sona oyn
 ```
 
 Xcode her derlemeden önce ilk iki kontrolü çalıştırır, hata varsa derleme durur.
+
+## TestFlight (Mac'siz)
+
+GitHub > Actions > **TestFlight** > Run workflow. Uygulamayı imzalayıp App Store Connect'e yükler. Gerekli gizli değerler `.github/workflows/testflight.yml` dosyasının başında yazılı. Build numarası her çalıştırmada otomatik artar.
+
+Geçici ikon `node tools/make-icon.mjs` ile üretilir; özgün çizim gelince `ios/App/Assets.xcassets/AppIcon.appiconset/icon-1024.png` değiştirilir.
 
 ## App Store notları
 

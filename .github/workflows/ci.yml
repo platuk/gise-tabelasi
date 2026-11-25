@@ -18,8 +18,8 @@ jobs:
     name: Bölüm ve metin doğrulama
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - name: Bölümler
@@ -31,7 +31,7 @@ jobs:
     name: Oyun mantığı testleri
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Swift sürümü
         run: swift --version
       - name: swift test
@@ -43,7 +43,7 @@ jobs:
     runs-on: macos-15
     needs: validate
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: XcodeGen kur
         run: brew install xcodegen
       - name: Xcode projesini üret

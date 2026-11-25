@@ -1,0 +1,108 @@
+# Uygulamayı imzalayıp TestFlight'a yükler. Yalnızca elle çalıştırılır:
+# GitHub > Actions > TestFlight > Run workflow.
+#
+# Gerekli GitHub "secrets" (Settings > Secrets and variables > Actions):
+#   APPLE_TEAM_ID   : Apple Developer takım kimliği (10 karakter)
+#   ASC_KEY_ID      : App Store Connect API anahtar kimliği
+#   ASC_ISSUER_ID   : App Store Connect API "Issuer ID"
+#   ASC_KEY_P8      : İndirilen AuthKey_XXXX.p8 dosyasının tüm içeriği
+name: TestFlight
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: testflight
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    name: Derle, imzala, TestFlight'a yükle
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      BUILD_NUMBER: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Gizli değerleri kontrol et
+        run: |
+          missing=""
+          for name in APPLE_TEAM_ID ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8; do
+            if [ -z "${!name}" ]; then missing="$missing $name"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Eksik GitHub secret:$missing"
+            exit 1
+          fi
+
+      - name: Bölüm ve metin doğrulama
+        run: |
+          node tools/validate-levels.mjs
+          node tools/check-strings.mjs
+
+      - name: XcodeGen kur ve projeyi üret
+        working-directory: ios
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: API anahtarını geçici dosyaya yaz
+        run: |
+          KEY_PATH="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
+          printf '%s\n' "$ASC_KEY_P8" > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          echo "KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+
+      - name: Arşivle (imzalı)
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project GiseTabelasi.xcodeproj \
+            -scheme GiseTabelasi \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/GiseTabelasi.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
+
+      - name: App Store Connect'e yükle
+        run: |
+          set -o pipefail
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>${APPLE_TEAM_ID}</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+            <key>uploadSymbols</key><true/>
+          </dict>
+          </plist>
+          EOF
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/GiseTabelasi.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          echo "Yüklendi: build $BUILD_NUMBER. App Store Connect > TestFlight altında birkaç dakika içinde işlenir."
+
+      - name: API anahtarını sil
+        if: always()
+        run: rm -f "$RUNNER_TEMP"/AuthKey_*.p8
