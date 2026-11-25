@@ -33,8 +33,12 @@ final class TowerTests: XCTestCase {
                     XCTAssertTrue(p.isMilestone)
                     XCTAssertEqual(p.width, config.playMaxX - config.playMinX, accuracy: 1e-9)
                 }
+                // Kayan kiriş en uç konumlarında bile duvarların içinde kalır.
+                XCTAssertGreaterThanOrEqual(p.minX - p.amplitude, config.playMinX - 1e-9, "tohum \(seed) kat \(floor)")
+                XCTAssertLessThanOrEqual(p.maxX + p.amplitude, config.playMaxX + 1e-9, "tohum \(seed) kat \(floor)")
                 let gap = max(0, max(p.minX, previous.minX) - min(p.maxX, previous.maxX))
-                XCTAssertLessThanOrEqual(gap, config.platformMaxShift + 1e-9, "tohum \(seed) kat \(floor)")
+                XCTAssertLessThanOrEqual(gap, config.platformMaxShift + config.slidingAmplitude.upperBound + 1e-9,
+                                         "tohum \(seed) kat \(floor)")
                 previous = p
             }
         }
@@ -174,24 +178,128 @@ final class TowerTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(sim.burnY, sim.y - sim.config.burnMaxLag - 1)
     }
 
+    // MARK: Bölümler, kupalar, kayıt noktası
+
+    func testChapterKinds() {
+        var generator = PlatformGenerator(config: TowerConfig(), seed: 5)
+        for floor in 1...99 { XCTAssertEqual(generator.platform(floor: floor).kind, .steel, "kat \(floor)") }
+        for floor in 101...199 {
+            guard case .sliding = generator.platform(floor: floor).kind else { return XCTFail("kat \(floor) kaymalı") }
+        }
+        for floor in 201...299 { XCTAssertEqual(generator.platform(floor: floor).kind, .slippery, "kat \(floor)") }
+        var kinds = Set<String>()
+        for floor in 301...399 {
+            switch generator.platform(floor: floor).kind {
+            case .steel: kinds.insert("steel")
+            case .sliding: kinds.insert("sliding")
+            case .slippery: kinds.insert("slippery")
+            }
+        }
+        XCTAssertEqual(kinds, ["steel", "sliding", "slippery"])
+        for floor in [100, 200, 300, 400] {
+            let milestone = generator.platform(floor: floor)
+            XCTAssertTrue(milestone.isMilestone)
+            XCTAssertEqual(milestone.kind, .steel)
+        }
+    }
+
+    func testTrophyEveryHundredFloorsReplacesMilestoneCard() {
+        var sim = TowerSimulation(seed: 3)
+        XCTAssertFalse(sim.land(onFloor: 99).contains(.trophyEarned(floor: 100)))
+        let events = sim.land(onFloor: 102) // 100'ün üzerinden atlanarak geçildi
+        XCTAssertTrue(events.contains(.trophyEarned(floor: 100)))
+        XCTAssertFalse(events.contains(.newMilestone(floor: 100)))
+        XCTAssertEqual(sim.checkpointFloor, 100)
+        XCTAssertTrue(sim.land(onFloor: 126).contains(.newMilestone(floor: 125)))
+        XCTAssertTrue(sim.land(onFloor: 200).contains(.trophyEarned(floor: 200)))
+        XCTAssertEqual(sim.checkpointFloor, 200)
+    }
+
+    func testStartingFromCheckpoint() {
+        var sim = TowerSimulation(seed: 1, startFloor: 200)
+        XCTAssertEqual(sim.startFloor, 200)
+        XCTAssertEqual(sim.highestFloor, 200)
+        XCTAssertEqual(sim.currentFloor, 200)
+        XCTAssertEqual(sim.y, 200 * sim.config.floorSpacing)
+        XCTAssertTrue(sim.isGrounded)
+        // Film, başlangıçtan 5 kat sonra başlar; kayıt noktasında hemen başlamaz.
+        for _ in 0..<120 { XCTAssertFalse(sim.step(dt: dt, input: TowerInput()).contains(.burnStarted)) }
+        XCTAssertTrue(sim.isGrounded)
+        sim.land(onFloor: 205)
+        XCTAssertTrue(sim.step(dt: dt, input: TowerInput()).contains(.burnStarted))
+    }
+
+    func testSlipperyGirderKeepsSliding() {
+        var steel = TowerSimulation(seed: 9)
+        steel.x = steel.platform(floor: 50).centerX
+        steel.land(onFloor: 50)
+        steel.vx = 200
+        var slippery = TowerSimulation(seed: 9)
+        slippery.x = slippery.platform(floor: 250).centerX
+        slippery.land(onFloor: 250)
+        slippery.vx = 200
+        for _ in 0..<15 {
+            _ = steel.step(dt: dt, input: TowerInput())
+            _ = slippery.step(dt: dt, input: TowerInput())
+        }
+        XCTAssertEqual(steel.vx, 0)
+        XCTAssertGreaterThan(slippery.vx, 150)
+    }
+
+    func testSlidingGirderCarriesPlayer() {
+        var sim = TowerSimulation(seed: 11)
+        let floor = 150
+        let start = sim.bounds(floor: floor)
+        sim.x = (start.minX + start.maxX) / 2
+        sim.land(onFloor: floor)
+        let relative = sim.x - (start.minX + start.maxX) / 2
+        var moved = 0.0
+        for _ in 0..<120 {
+            let before = sim.x
+            _ = sim.step(dt: dt, input: TowerInput())
+            moved += abs(sim.x - before)
+            XCTAssertTrue(sim.isGrounded)
+        }
+        let now = sim.bounds(floor: floor)
+        XCTAssertEqual(sim.x - (now.minX + now.maxX) / 2, relative, accuracy: 0.5)
+        XCTAssertGreaterThan(moved, 1)
+    }
+
     // MARK: Oynanabilirlik
 
-    /// Basit bir bot kuleyi tırmanabilmeli: kuralların ve kiriş yerleşiminin oynanabilir olduğunun kanıtı.
-    func testBotCanClimbFortyFloors() {
+    /// Basit bir bot her bölümü tırmanabilmeli: kuralların ve kiriş yerleşiminin oynanabilir olduğunun kanıtı.
+    private func botClimb(seed: UInt64, startFloor: Int, floors: Int, seconds: Double) -> Int {
         var config = TowerConfig()
         config.burnStartFloor = .max
+        var sim = TowerSimulation(config: config, seed: seed, startFloor: startFloor)
+        var time = 0.0
+        while time < seconds && sim.highestFloor < startFloor + floors {
+            let target = sim.bounds(floor: sim.currentFloor + 1)
+            let center = (target.minX + target.maxX) / 2
+            let dx = center - sim.x
+            let direction = abs(dx) < 6 ? 0 : (dx > 0 ? 1 : -1)
+            let jump = sim.isGrounded && abs(dx) < (target.maxX - target.minX) / 2 + 40
+            _ = sim.step(dt: dt, input: TowerInput(direction: direction, jump: jump))
+            time += dt
+        }
+        return sim.highestFloor - startFloor
+    }
+
+    func testBotCanClimbSteelChapter() {
         for seed: UInt64 in [1, 42, 2026] {
-            var sim = TowerSimulation(config: config, seed: seed)
-            var time = 0.0
-            while time < 180 && sim.highestFloor < 40 {
-                let target = sim.platform(floor: sim.currentFloor + 1)
-                let dx = target.centerX - sim.x
-                let direction = abs(dx) < 6 ? 0 : (dx > 0 ? 1 : -1)
-                let jump = sim.isGrounded && abs(dx) < target.width / 2 + 40
-                _ = sim.step(dt: dt, input: TowerInput(direction: direction, jump: jump))
-                time += dt
-            }
-            XCTAssertGreaterThanOrEqual(sim.highestFloor, 40, "tohum \(seed)")
+            XCTAssertGreaterThanOrEqual(botClimb(seed: seed, startFloor: 0, floors: 40, seconds: 180), 40, "tohum \(seed)")
+        }
+    }
+
+    func testBotCanClimbSlidingChapter() {
+        for seed: UInt64 in [1, 42, 2026] {
+            XCTAssertGreaterThanOrEqual(botClimb(seed: seed, startFloor: 100, floors: 20, seconds: 240), 20, "tohum \(seed)")
+        }
+    }
+
+    func testBotCanClimbSlipperyChapter() {
+        for seed: UInt64 in [1, 42, 2026] {
+            XCTAssertGreaterThanOrEqual(botClimb(seed: seed, startFloor: 200, floors: 20, seconds: 240), 20, "tohum \(seed)")
         }
     }
 }

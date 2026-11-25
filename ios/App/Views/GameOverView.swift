@@ -19,6 +19,11 @@ struct GameOverView: View {
                     .font(Theme.title(18))
                     .foregroundStyle(Theme.marquee)
             }
+            if result.checkpointFloor > 0 {
+                Text("gameover.checkpoint \(result.checkpointFloor)")
+                    .font(Theme.title(15))
+                    .multilineTextAlignment(.center)
+            }
             HStack(spacing: 14) {
                 Button(action: onRetry) {
                     Text("gameover.retry")

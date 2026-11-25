@@ -11,6 +11,11 @@ import GameCore
 final class TowerScene: SKScene {
     /// (puan, ulaşılan kat)
     var onGameOver: ((Int, Int) -> Void)?
+    /// Kupa kazanıldığında hemen çağrılır (kayıt noktası kaydı için): kupanın katı.
+    var onCheckpoint: ((Int) -> Void)?
+    var onAutoJumpChanged: ((Bool) -> Void)?
+    /// Açıkken karakter yere değdiği an kendiliğinden zıplar.
+    private(set) var autoJump: Bool
 
     private var sim: TowerSimulation
     private let config: TowerConfig
@@ -27,7 +32,9 @@ final class TowerScene: SKScene {
     private let controls = ControlsOverlay()
     private var filmOverlay: FilmOverlay?
     private var activeCard: SKNode?
-    private var platformNodes: [Int: SKNode] = [:]
+    private var cardQueue: [(text: String, big: Bool)] = []
+    private var introShown = false
+    private var platformNodes: [Int: PlatformNode] = [:]
 
     private var lastUpdate: TimeInterval = 0
     private var accumulator = 0.0
@@ -42,10 +49,11 @@ final class TowerScene: SKScene {
     private var gameOverSent = false
     private let haptics = Haptics()
 
-    init(seed: UInt64) {
+    init(seed: UInt64, startFloor: Int, autoJump: Bool) {
         let config = TowerConfig()
         self.config = config
-        self.sim = TowerSimulation(config: config, seed: seed)
+        self.autoJump = autoJump
+        self.sim = TowerSimulation(config: config, seed: seed, startFloor: startFloor)
         self.burn = BurnEdge(width: CGFloat(config.worldWidth))
         super.init(size: CGSize(width: 390, height: 844))
         scaleMode = .resizeFill
@@ -75,9 +83,14 @@ final class TowerScene: SKScene {
             cameraNode.addChild(hud)
             controls.zPosition = 600
             hud.zPosition = 700
+            controls.setAuto(autoJump)
         }
         layoutScene()
         syncNodes()
+        if !introShown {
+            introShown = true
+            showTitleCard(chapterTitle(forFloor: sim.startFloor), big: true)
+        }
     }
 
     override func didChangeSize(_ oldSize: CGSize) {
@@ -127,7 +140,8 @@ final class TowerScene: SKScene {
 
         accumulator += frameDt
         while accumulator >= stepDuration {
-            let events = sim.step(dt: stepDuration, input: TowerInput(direction: direction, jump: pendingJump))
+            let jump = pendingJump || (autoJump && sim.isGrounded)
+            let events = sim.step(dt: stepDuration, input: TowerInput(direction: direction, jump: jump))
             pendingJump = false
             handle(events)
             accumulator -= stepDuration
@@ -201,6 +215,23 @@ final class TowerScene: SKScene {
             world.addChild(node)
             platformNodes[floor] = node
         }
+        // Kayan kirişler her karede anlık konumlarına taşınır.
+        for (floor, node) in platformNodes where node.isSliding {
+            let bounds = sim.bounds(floor: floor)
+            node.position.x = CGFloat((bounds.minX + bounds.maxX) / 2)
+        }
+    }
+
+    private func chapterTitle(forFloor floor: Int) -> String {
+        let chapter = config.chapter(forFloor: floor)
+        let name: String
+        switch chapter {
+        case 0: name = String(localized: "chapter.steel")
+        case 1: name = String(localized: "chapter.sliding")
+        case 2: name = String(localized: "chapter.slippery")
+        default: name = String(localized: "chapter.mixed")
+        }
+        return String(localized: "card.chapter \(chapter + 1) \(name)")
     }
 
     // MARK: Olaylar
@@ -230,6 +261,15 @@ final class TowerScene: SKScene {
                 }
             case .newMilestone(let floor):
                 showTitleCard(String(localized: "card.milestone \(floor)"), big: false)
+            case .trophyEarned(let floor):
+                if let tier = TrophyTier(checkpointFloor: floor) {
+                    showTitleCard(String(localized: "card.trophy \(tier.name)"), big: true)
+                    spawnTrophy(tier)
+                }
+                showTitleCard(chapterTitle(forFloor: floor), big: true)
+                haptics.notify(.success)
+                shake()
+                onCheckpoint?(floor)
             case .burnStarted:
                 showTitleCard(String(localized: "card.burn"), big: true)
                 haptics.notify(.warning)
@@ -242,8 +282,19 @@ final class TowerScene: SKScene {
     // MARK: Efektler
 
     /// 1930'lar ara yazı kartı: kesik (12 fps) büyüme, kısa bekleme, solma.
+    /// Kartlar sıraya girer; biri bitmeden diğeri gösterilmez.
     private func showTitleCard(_ text: String, big: Bool) {
-        activeCard?.removeFromParent()
+        if cardQueue.count >= 4 { cardQueue.removeFirst() }
+        cardQueue.append((text: text, big: big))
+        if activeCard == nil { presentNextCard() }
+    }
+
+    private func presentNextCard() {
+        guard !cardQueue.isEmpty else {
+            activeCard = nil
+            return
+        }
+        let (text, big) = cardQueue.removeFirst()
         let card = SKNode()
         let label = SKLabelNode(fontNamed: "AmericanTypewriter-Bold")
         label.text = text
@@ -277,6 +328,27 @@ final class TowerScene: SKScene {
             .wait(forDuration: tick), .scale(to: 1.0, duration: 0),
             .wait(forDuration: big ? 1.3 : 0.9),
             .fadeOut(withDuration: 0.25),
+            .run { [weak self] in
+                self?.activeCard = nil
+                self?.presentNextCard()
+            },
+            .removeFromParent(),
+        ]))
+    }
+
+    /// Kazanılan kupa karakterin üstünde belirir, yükselir ve kaybolur.
+    private func spawnTrophy(_ tier: TrophyTier) {
+        let trophy = TrophyNode(tier: tier, size: 36)
+        trophy.position = CGPoint(x: sim.x, y: sim.y + 70)
+        trophy.zPosition = 30
+        trophy.setScale(0.3)
+        world.addChild(trophy)
+        let tick = 1.0 / 12.0
+        trophy.run(.sequence([
+            .scale(to: 0.8, duration: 0), .wait(forDuration: tick),
+            .scale(to: 1.3, duration: 0), .wait(forDuration: tick),
+            .scale(to: 1.1, duration: 0), .wait(forDuration: tick),
+            .group([.moveBy(x: 0, y: 60, duration: 1.0), .sequence([.wait(forDuration: 0.6), .fadeOut(withDuration: 0.4)])]),
             .removeFromParent(),
         ]))
     }
@@ -373,7 +445,15 @@ final class TowerScene: SKScene {
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard !sim.isDead else { return }
         for touch in touches {
-            let role = controlRole(for: touch.location(in: cameraNode))
+            let point = touch.location(in: cameraNode)
+            if controls.isAutoButton(point) {
+                autoJump.toggle()
+                controls.setAuto(autoJump)
+                haptics.impact(.light)
+                onAutoJumpChanged?(autoJump)
+                continue
+            }
+            let role = controlRole(for: point)
             touchRoles[ObjectIdentifier(touch)] = role
             if role == .jump {
                 pendingJump = true

@@ -8,6 +8,8 @@ enum Palette {
     static let ink = SKColor(red: 0.12, green: 0.09, blue: 0.07, alpha: 1)
     static let beam = SKColor(red: 0.78, green: 0.33, blue: 0.22, alpha: 1)
     static let milestone = SKColor(red: 0.98, green: 0.80, blue: 0.32, alpha: 1)
+    static let slidingBeam = SKColor(red: 0.27, green: 0.50, blue: 0.53, alpha: 1)
+    static let slipperyBeam = SKColor(red: 0.74, green: 0.87, blue: 0.93, alpha: 1)
     static let brick = SKColor(red: 0.52, green: 0.25, blue: 0.18, alpha: 1)
     static let flame = SKColor(red: 1.00, green: 0.52, blue: 0.14, alpha: 1)
     static let flameCore = SKColor(red: 1.00, green: 0.88, blue: 0.46, alpha: 1)

@@ -35,7 +35,7 @@ targets:
         MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: Skyscraper Swing
+        INFOPLIST_KEY_CFBundleDisplayName: TopCup
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.arcade-games
         INFOPLIST_KEY_UIStatusBarHidden: YES
         INFOPLIST_KEY_UIRequiresFullScreen: YES

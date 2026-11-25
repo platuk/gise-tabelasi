@@ -33,8 +33,18 @@ public struct TowerConfig: Equatable, Sendable {
     public var platformMinWidth: Double = 70
     public var platformShrinkPerFloor: Double = 0.6
     public var platformMaxShift: Double = 170
-    /// Her bu kadar katta bir, duvardan duvara tam genişlikte "dinlenme" katı.
+    /// Bölüm uzunluğu: her bu kadar katta bir kupa, kayıt noktası ve duvardan duvara "dinlenme" katı.
     public var milestoneInterval: Int = 100
+
+    // Bölüm 2: kayan kirişler
+    public var slidingWidthFactor: Double = 0.8
+    public var slidingAmplitude: ClosedRange<Double> = 24...70
+    /// Radyan/saniye.
+    public var slidingSpeed: ClosedRange<Double> = 0.9...1.8
+
+    // Bölüm 3: kaygan kirişler
+    public var slipperyFriction: Double = 260
+    public var slipperyAcceleration: Double = 1000
     /// Ekranda kart gösterilen kat aralığı.
     public var cardInterval: Int = 25
 
@@ -48,6 +58,11 @@ public struct TowerConfig: Equatable, Sendable {
     public var burnMaxLag: Double = 640
 
     public init() {}
+
+    /// 0'dan başlayan bölüm numarası (0: kat 0–99, 1: kat 100–199, ...).
+    public func chapter(forFloor floor: Int) -> Int {
+        max(0, floor) / max(1, milestoneInterval)
+    }
 
     public var playMinX: Double { wallThickness }
     public var playMaxX: Double { worldWidth - wallThickness }

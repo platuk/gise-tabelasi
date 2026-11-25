@@ -1,18 +1,72 @@
 import SpriteKit
 import GameCore
 
-/// Perçinli çelik kiriş. Orijin: üst yüzeyin ortası.
+/// Kiriş. Orijin: üst yüzeyin ortası. Türüne göre görünür:
+/// çelik (perçinli kırmızı), kayan (tekerlekli yeşil), kaygan (parlak, damlalı buz mavisi), kupa katı (sarı, kupalı).
 final class PlatformNode: SKNode {
+    let isSliding: Bool
+
     init(platform: Platform) {
+        if case .sliding = platform.kind { isSliding = true } else { isSliding = false }
         super.init()
         position = CGPoint(x: platform.centerX, y: platform.y)
         let width = CGFloat(platform.width)
 
         let beam = SKShapeNode(rect: CGRect(x: -width / 2, y: -13, width: width, height: 13), cornerRadius: 2)
-        beam.fillColor = platform.isMilestone ? Palette.milestone : Palette.beam
+        switch platform.kind {
+        case .steel:
+            beam.fillColor = platform.isMilestone ? Palette.milestone : Palette.beam
+        case .sliding:
+            beam.fillColor = Palette.slidingBeam
+        case .slippery:
+            beam.fillColor = Palette.slipperyBeam
+        }
         beam.strokeColor = Palette.ink
         beam.lineWidth = 2.5
         addChild(beam)
+
+        if isSliding {
+            for side in [CGFloat(-1), 1] {
+                let wheel = SKShapeNode(circleOfRadius: 4.5)
+                wheel.fillColor = Palette.cream
+                wheel.strokeColor = Palette.ink
+                wheel.lineWidth = 2
+                wheel.position = CGPoint(x: side * (width / 2 - 9), y: -17)
+                addChild(wheel)
+            }
+        }
+
+        if platform.isSlippery {
+            let shine = CGMutablePath()
+            var x = -width / 2 + 10
+            while x < width / 2 - 10 {
+                shine.move(to: CGPoint(x: x, y: -4))
+                shine.addLine(to: CGPoint(x: x + 7, y: -9))
+                x += 22
+            }
+            let streaks = SKShapeNode(path: shine)
+            streaks.strokeColor = .white
+            streaks.lineWidth = 2
+            streaks.lineCap = .round
+            addChild(streaks)
+            let drips = CGMutablePath()
+            for fraction in [CGFloat(-0.3), 0.15, 0.38] {
+                let dx = width * fraction
+                drips.addEllipse(in: CGRect(x: dx - 2, y: -21, width: 4, height: 7))
+            }
+            let dripNode = SKShapeNode(path: drips)
+            dripNode.fillColor = Palette.slipperyBeam
+            dripNode.strokeColor = Palette.ink
+            dripNode.lineWidth = 1.2
+            addChild(dripNode)
+        }
+
+        if platform.isMilestone, let tier = TrophyTier(checkpointFloor: platform.floor) {
+            let trophy = TrophyNode(tier: tier, size: 30)
+            trophy.position = CGPoint(x: 0, y: 17)
+            trophy.zPosition = 1
+            addChild(trophy)
+        }
 
         let details = CGMutablePath()
         details.move(to: CGPoint(x: -width / 2 + 3, y: -9))
@@ -283,17 +337,32 @@ enum ControlRole: Hashable {
     case left, right, jump
 }
 
-/// Ekrandaki dokunma düğmeleri: solda iki yön, sağda zıplama. Ekranın sol yarısı yönler, sağ yarısı zıplamadır.
+/// Ekrandaki dokunma düğmeleri: solda iki yön, sağda zıplama ve üstünde "OTO" (otomatik zıplama) anahtarı.
+/// Ekranın sol yarısı yönler, sağ yarısı zıplamadır; OTO düğmesine dokunmak zıplatmaz, yalnızca açıp kapatır.
 final class ControlsOverlay: SKNode {
     private let left = ControlsOverlay.button(arrowAngle: .pi)
     private let right = ControlsOverlay.button(arrowAngle: 0)
     private let jump = ControlsOverlay.button(arrowAngle: .pi / 2, radius: 40)
+    private let auto = SKNode()
+    private let autoCircle = SKShapeNode(circleOfRadius: 25)
+    private let autoLabel = SKLabelNode(fontNamed: "AmericanTypewriter-Bold")
+    private let autoRadius: CGFloat = 30
 
     override init() {
         super.init()
         addChild(left)
         addChild(right)
         addChild(jump)
+        autoCircle.strokeColor = Palette.ink
+        autoCircle.lineWidth = 3
+        autoLabel.text = String(localized: "controls.auto")
+        autoLabel.fontSize = 13
+        autoLabel.fontColor = Palette.ink
+        autoLabel.verticalAlignmentMode = .center
+        auto.addChild(autoCircle)
+        auto.addChild(autoLabel)
+        addChild(auto)
+        setAuto(false)
         highlight([])
     }
 
@@ -304,6 +373,18 @@ final class ControlsOverlay: SKNode {
         left.position = CGPoint(x: -size.width / 2 + 54, y: y)
         right.position = CGPoint(x: -size.width / 2 + 132, y: y)
         jump.position = CGPoint(x: size.width / 2 - 68, y: y)
+        auto.position = CGPoint(x: size.width / 2 - 68, y: y + 84)
+    }
+
+    func setAuto(_ on: Bool) {
+        autoCircle.fillColor = on ? Palette.flame : Palette.cream
+        auto.alpha = on ? 0.95 : 0.5
+        auto.removeAllActions()
+        auto.run(.sequence([.scale(to: 1.2, duration: 0), .wait(forDuration: 1.0 / 12.0), .scale(to: 1, duration: 0)]))
+    }
+
+    func isAutoButton(_ point: CGPoint) -> Bool {
+        hypot(point.x - auto.position.x, point.y - auto.position.y) <= autoRadius
     }
 
     func highlight(_ roles: Set<ControlRole>) {

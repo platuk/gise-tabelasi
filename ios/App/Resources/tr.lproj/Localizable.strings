@@ -1,8 +1,13 @@
-"app.title" = "Gökdelen\nSwing";
-"title.subtitle" = "1930'lardan bir tırmanış gösterisi";
+"app.title" = "TopCup";
+"title.subtitle" = "Kupa Kulesi · 1930'lardan bir tırmanış gösterisi";
 "title.play" = "OYNA";
+"title.continue %lld" = "DEVAM: KAT %lld";
+"title.restart" = "Baştan başla";
+"title.trophies %lld" = "Kazanılan kupa: %lld";
 "title.best %lld %lld" = "En iyi: %1$lld puan · %2$lld. kat";
 "title.help" = "Nasıl oynanır";
+
+"controls.auto" = "OTO";
 
 "hud.floor %lld" = "KAT %lld";
 "hud.score %lld" = "%lld PUAN";
@@ -11,11 +16,25 @@
 "card.combo %lld" = "%lld KATLIK KOMBO!";
 "card.milestone %lld" = "%lld. KAT!";
 "card.burn" = "FİLM YANIYOR!";
+"card.trophy %@" = "%@ SENİN!";
+"card.chapter %lld %@" = "BÖLÜM %1$lld: %2$@";
+
+"chapter.steel" = "ÇELİK KİRİŞLER";
+"chapter.sliding" = "KAYAN KİRİŞLER";
+"chapter.slippery" = "KAYGAN KİRİŞLER";
+"chapter.mixed" = "KARIŞIK KATLAR";
+
+"trophy.bronze" = "BRONZ KUPA";
+"trophy.silver" = "GÜMÜŞ KUPA";
+"trophy.gold" = "ALTIN KUPA";
+"trophy.diamond" = "ELMAS KUPA";
+"trophy.legend" = "EFSANE KUPA";
 
 "gameover.title" = "SON";
 "gameover.floor %lld" = "Ulaştığın kat: %lld";
 "gameover.score %lld" = "Puan: %lld";
 "gameover.newBest" = "Yeni rekor!";
+"gameover.checkpoint %lld" = "Tekrar, kayıt noktandan (kat %lld) başlar.";
 "gameover.retry" = "Tekrar";
 "gameover.menu" = "Ana ekran";
 
@@ -25,9 +44,15 @@
 "help.how.body" = "İnşaatı süren bir gökdelende kirişten kirişe zıplayarak olabildiğince yükseğe tırman. Kirişlerin altından geçebilir, üstlerine basabilirsin. Yükseldikçe kirişler daralır.";
 "help.controls.title" = "Kontroller";
 "help.controls.body" = "Ekranın sol yarısındaki oklara basılı tutarak koş, sağ yarısına dokunarak zıpla. Ne kadar hızlı koşarsan o kadar yükseğe zıplarsın. Duvara çarparsan hızını koruyarak geri seker, ters yöne uçarsın.";
+"help.auto.title" = "Otomatik zıplama";
+"help.auto.body" = "Zıplama düğmesinin üstündeki OTO düğmesine dokununca açılır ya da kapanır. Açıkken karakter yere her değdiğinde kendiliğinden zıplar; sen yalnızca yönü verirsin. Ayar hatırlanır.";
+"help.trophy.title" = "Kupalar ve kayıt noktası";
+"help.trophy.body" = "Her 100 katta bir kupa kazanırsın: Bronz, Gümüş, Altın, Elmas, sonra Efsane. Kupayı kazandığın kat kayıt noktan olur; bir sonraki oyuna istersen oradan başlarsın. Baştan başlamak için ana ekrandaki \"Baştan başla\" düğmesini kullan.";
+"help.chapters.title" = "Bölümler";
+"help.chapters.body" = "Her 100 katta kirişler değişir. Kat 0-99: çelik kirişler. Kat 100-199: kısa ve sağa sola kayan kirişler; üzerindeyken seni de taşırlar. Kat 200-299: kaygan kirişler; durmak zordur. Kat 300 ve sonrası: hepsi karışık.";
 "help.combo.title" = "Kombo";
 "help.combo.body" = "Tek zıplayışta iki ya da daha fazla kat atlarsan kombo başlar. Üç saniye içinde yine çok katlı bir zıplayış yaparsan kombo büyür. Tek kat atlarsan, aşağı düşersen ya da süre dolarsa kombo biter. En az iki zıplayışlık kombo, atlanan kat sayısının karesi kadar puan verir.";
 "help.burn.title" = "Yanan film";
-"help.burn.body" = "Beşinci kattan sonra film alttan yanmaya başlar ve giderek hızlanır. Yanan kenar sana yetişirse oyun biter.";
+"help.burn.body" = "Başladığın kattan beş kat yükseldikten sonra film alttan yanmaya başlar ve giderek hızlanır. Yanan kenar sana yetişirse oyun biter.";
 "help.privacy.title" = "Gizlilik";
-"help.privacy.body" = "Oyun internet olmadan çalışır. Reklam, satın alma, hesap ya da veri toplama yoktur. En iyi puanın yalnızca bu cihazda saklanır.";
+"help.privacy.body" = "Oyun internet olmadan çalışır. Reklam, satın alma, hesap ya da veri toplama yoktur. Puanın, kupaların ve kayıt noktan yalnızca bu cihazda saklanır.";

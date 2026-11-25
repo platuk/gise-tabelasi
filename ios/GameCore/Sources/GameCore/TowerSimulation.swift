@@ -3,7 +3,7 @@ import Foundation
 public struct TowerInput: Equatable, Sendable {
     /// -1 sol, 0 yok, 1 sağ.
     public var direction: Int
-    /// Bu adımda zıplama tuşuna yeni basıldı mı.
+    /// Bu adımda zıplama istendi mi (dokunma ya da otomatik zıplama).
     public var jump: Bool
 
     public init(direction: Int = 0, jump: Bool = false) {
@@ -26,6 +26,8 @@ public enum TowerEvent: Equatable, Sendable {
     case comboExtended(jumps: Int, floors: Int)
     case comboEnded(jumps: Int, floors: Int, points: Int)
     case newMilestone(floor: Int)
+    /// Her 100 katta bir kupa: bu kat aynı zamanda kayıt noktası ve yeni bölümün başı.
+    case trophyEarned(floor: Int)
     case burnStarted
     case died
 }
@@ -39,20 +41,23 @@ public enum TowerEvent: Equatable, Sendable {
 /// - 2 veya daha fazla kat atlayan iniş kombo başlatır/uzatır (3 sn içinde).
 ///   Kombo; tek kat atlanınca, aşağı düşülünce ya da süre dolunca biter.
 ///   En az 2 zıplamalık kombo, (kat sayısı)² puan verir.
-/// - Belirli bir kattan sonra alttan yanan film yükselir; ona yakalanan oyun biter.
+/// - Her 100 katta bir kupa kazanılır; o kat kayıt noktasıdır ve yeni bölüm başlar.
+/// - Kayan kirişler üzerindeki oyuncuyu taşır; kaygan kirişlerde sürtünme düşüktür.
+/// - Başlangıçtan 5 kat sonra alttan yanan film yükselir; ona yakalanan oyun biter.
 public struct TowerSimulation: Sendable {
     public let config: TowerConfig
+    public let startFloor: Int
     private var generator: PlatformGenerator
 
     /// Oyuncunun yatay merkezi.
     public internal(set) var x: Double
     /// Oyuncunun ayaklarının yüksekliği.
-    public internal(set) var y: Double = 0
+    public internal(set) var y: Double
     public internal(set) var vx: Double = 0
     public internal(set) var vy: Double = 0
     public internal(set) var isGrounded = true
-    public internal(set) var currentFloor = 0
-    public internal(set) var highestFloor = 0
+    public internal(set) var currentFloor: Int
+    public internal(set) var highestFloor: Int
     public internal(set) var comboPoints = 0
     public internal(set) var combo: Combo?
     public internal(set) var facing = 1
@@ -66,35 +71,61 @@ public struct TowerSimulation: Sendable {
     private var jumpBuffer: Double = 0
     private var burnElapsed: Double = 0
 
-    public init(config: TowerConfig = TowerConfig(), seed: UInt64) {
+    /// `startFloor`: kayıt noktasından başlamak için (ör. 100, 200). Kat 0'dan başlamak için 0.
+    public init(config: TowerConfig = TowerConfig(), seed: UInt64, startFloor: Int = 0) {
         self.config = config
-        self.generator = PlatformGenerator(config: config, seed: seed)
-        self.x = config.worldWidth / 2
-        self.burnY = -config.burnStartDistance
+        var generator = PlatformGenerator(config: config, seed: seed)
+        let start = generator.platform(floor: max(0, startFloor))
+        self.generator = generator
+        self.startFloor = start.floor
+        self.x = start.centerX
+        self.y = start.y
+        self.currentFloor = start.floor
+        self.highestFloor = start.floor
+        self.burnY = start.y - config.burnStartDistance
     }
 
     public var score: Int { highestFloor * 10 + comboPoints }
+
+    /// Şu ana kadar kazanılan en yüksek kupanın katı (kayıt noktası). Hiç yoksa 0.
+    public var checkpointFloor: Int {
+        highestFloor / config.milestoneInterval * config.milestoneInterval
+    }
 
     public mutating func platform(floor: Int) -> Platform {
         generator.platform(floor: floor)
     }
 
+    /// Kirişin şu anki konumu (kayan kirişler zamanla yer değiştirir).
+    public mutating func bounds(floor: Int) -> (minX: Double, maxX: Double) {
+        platform(floor: floor).bounds(at: elapsed)
+    }
+
     public mutating func step(dt: Double, input: TowerInput) -> [TowerEvent] {
         guard !isDead, dt > 0 else { return [] }
         var events: [TowerEvent] = []
+        let previousTime = elapsed
         elapsed += dt
 
         let direction = input.direction.signum()
         jumpBuffer = input.jump ? config.jumpBufferTime : max(0, jumpBuffer - dt)
         coyoteTimer = isGrounded ? config.coyoteTime : max(0, coyoteTimer - dt)
 
+        let standing: Platform? = isGrounded ? platform(floor: currentFloor) : nil
+        let onSlippery = standing?.isSlippery ?? false
+
         // Yatay hareket
         if direction != 0 {
             facing = direction
-            let acceleration = isGrounded ? config.groundAcceleration : config.airAcceleration
+            let acceleration: Double
+            if isGrounded {
+                acceleration = onSlippery ? config.slipperyAcceleration : config.groundAcceleration
+            } else {
+                acceleration = config.airAcceleration
+            }
             vx += Double(direction) * acceleration * dt
         } else if isGrounded {
-            let friction = config.groundFriction * dt
+            let friction = (onSlippery ? config.slipperyFriction : config.groundFriction) * dt
             vx = abs(vx) <= friction ? 0 : vx - friction * (vx > 0 ? 1 : -1)
         }
         vx = min(max(vx, -config.maxRunSpeed), config.maxRunSpeed)
@@ -115,6 +146,11 @@ public struct TowerSimulation: Sendable {
         x += vx * dt
         y += vy * dt
 
+        // Kayan kiriş üzerindeki oyuncuyu taşır.
+        if isGrounded, let standing {
+            x += standing.offset(at: elapsed) - standing.offset(at: previousTime)
+        }
+
         // Duvarlardan sekme
         let half = config.playerWidth / 2
         if x - half < config.playMinX {
@@ -132,12 +168,9 @@ public struct TowerSimulation: Sendable {
         }
 
         // Kirişin ucundan düşme
-        if isGrounded {
-            let standing = platform(floor: currentFloor)
-            if !supports(standing) {
-                isGrounded = false
-                vy = 0
-            }
+        if isGrounded, let standing, !supports(standing) {
+            isGrounded = false
+            vy = 0
         }
 
         // İniş: düşerken geçilen kirişlerden en üsttekine basılır.
@@ -166,7 +199,7 @@ public struct TowerSimulation: Sendable {
         }
 
         // Yanan film
-        if !burnActive && highestFloor >= config.burnStartFloor {
+        if !burnActive && highestFloor - startFloor >= config.burnStartFloor {
             burnActive = true
             burnY = y - config.burnStartDistance
             events.append(.burnStarted)
@@ -210,9 +243,18 @@ public struct TowerSimulation: Sendable {
         if floor > highestFloor {
             let previous = highestFloor
             highestFloor = floor
-            let interval = max(1, config.cardInterval)
-            if floor / interval > previous / interval {
-                events.append(.newMilestone(floor: floor / interval * interval))
+
+            // Bir yüzlük sınır geçildiyse kupa (üzerine basılmasa bile, atlanarak geçilse de).
+            let chapterLength = max(1, config.milestoneInterval)
+            let trophyEarned = floor / chapterLength > previous / chapterLength
+            if trophyEarned {
+                events.append(.trophyEarned(floor: floor / chapterLength * chapterLength))
+            }
+
+            let cardInterval = max(1, config.cardInterval)
+            let card = floor / cardInterval * cardInterval
+            if floor / cardInterval > previous / cardInterval && !(trophyEarned && card % chapterLength == 0) {
+                events.append(.newMilestone(floor: card))
             }
         }
         return events
@@ -226,9 +268,10 @@ public struct TowerSimulation: Sendable {
         return [.comboEnded(jumps: finished.jumps, floors: finished.floors, points: points)]
     }
 
-    /// Oyuncunun ayakları kirişin üzerinde mi (kenarlarda biraz tolerans var).
+    /// Oyuncunun ayakları kirişin (şu anki konumunun) üzerinde mi; kenarlarda biraz tolerans var.
     private func supports(_ candidate: Platform) -> Bool {
         let foot = config.playerWidth * 0.3
-        return x + foot >= candidate.minX && x - foot <= candidate.maxX
+        let (minX, maxX) = candidate.bounds(at: elapsed)
+        return x + foot >= minX && x - foot <= maxX
     }
 }

@@ -1,8 +1,13 @@
-"app.title" = "Skyscraper\nSwing";
-"title.subtitle" = "A climbing picture from the 1930s";
+"app.title" = "TopCup";
+"title.subtitle" = "The Trophy Tower · a climbing picture from the 1930s";
 "title.play" = "PLAY";
+"title.continue %lld" = "CONTINUE: FLOOR %lld";
+"title.restart" = "Start over";
+"title.trophies %lld" = "Trophies won: %lld";
 "title.best %lld %lld" = "Best: %1$lld points · floor %2$lld";
 "title.help" = "How to play";
+
+"controls.auto" = "AUTO";
 
 "hud.floor %lld" = "FLOOR %lld";
 "hud.score %lld" = "%lld PTS";
@@ -11,11 +16,25 @@
 "card.combo %lld" = "%lld-FLOOR COMBO!";
 "card.milestone %lld" = "FLOOR %lld!";
 "card.burn" = "THE FILM IS BURNING!";
+"card.trophy %@" = "THE %@ IS YOURS!";
+"card.chapter %lld %@" = "CHAPTER %1$lld: %2$@";
+
+"chapter.steel" = "STEEL GIRDERS";
+"chapter.sliding" = "SLIDING GIRDERS";
+"chapter.slippery" = "SLIPPERY GIRDERS";
+"chapter.mixed" = "MIXED FLOORS";
+
+"trophy.bronze" = "BRONZE CUP";
+"trophy.silver" = "SILVER CUP";
+"trophy.gold" = "GOLD CUP";
+"trophy.diamond" = "DIAMOND CUP";
+"trophy.legend" = "LEGEND CUP";
 
 "gameover.title" = "THE END";
 "gameover.floor %lld" = "Floor reached: %lld";
 "gameover.score %lld" = "Score: %lld";
 "gameover.newBest" = "New record!";
+"gameover.checkpoint %lld" = "Again starts from your checkpoint (floor %lld).";
 "gameover.retry" = "Again";
 "gameover.menu" = "Title screen";
 
@@ -25,9 +44,15 @@
 "help.how.body" = "Climb a skyscraper under construction by jumping from girder to girder, as high as you can. You can pass through girders from below and land on top of them. Girders get narrower as you climb.";
 "help.controls.title" = "Controls";
 "help.controls.body" = "Hold the arrows on the left half of the screen to run, and tap the right half to jump. The faster you run, the higher you jump. Hit a wall and you bounce off it, keeping your speed.";
+"help.auto.title" = "Auto jump";
+"help.auto.body" = "Tap the AUTO button above the jump button to turn it on or off. While it is on, your character jumps by itself every time it lands; you only steer. The setting is remembered.";
+"help.trophy.title" = "Trophies and checkpoints";
+"help.trophy.body" = "Every 100 floors you win a trophy: Bronze, Silver, Gold, Diamond, then Legend. The floor where you win it becomes your checkpoint, and your next game can start there. To start from the bottom, use \"Start over\" on the title screen.";
+"help.chapters.title" = "Chapters";
+"help.chapters.body" = "The girders change every 100 floors. Floors 0-99: steel girders. Floors 100-199: short girders that slide left and right and carry you with them. Floors 200-299: slippery girders that are hard to stop on. Floor 300 and up: all of them mixed.";
 "help.combo.title" = "Combo";
 "help.combo.body" = "Jump two or more floors at once to start a combo. Make another multi-floor jump within three seconds to grow it. A combo ends when you jump only one floor, fall down, or run out of time. A combo of at least two jumps scores the number of floors squared.";
 "help.burn.title" = "Burning film";
-"help.burn.body" = "After the fifth floor, the film starts burning from the bottom and keeps speeding up. If the burning edge catches you, the game ends.";
+"help.burn.body" = "Once you climb five floors above where you started, the film starts burning from the bottom and keeps speeding up. If the burning edge catches you, the game ends.";
 "help.privacy.title" = "Privacy";
-"help.privacy.body" = "The game works offline. There are no ads, purchases, accounts, or data collection. Your best score is stored only on this device.";
+"help.privacy.body" = "The game works offline. There are no ads, purchases, accounts, or data collection. Your score, trophies, and checkpoint are stored only on this device.";

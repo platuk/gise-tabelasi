@@ -1,4 +1,13 @@
-# Gökdelen Swing: Tasarım Notu
+# TopCup (Kupa Kulesi): Tasarım Notu
+
+## Kupalar ve bölümler
+
+- Her 100 katta bir kupa: Bronz, Gümüş, Altın, Elmas, Efsane. Kupa katı kayıt noktasıdır; sonraki oyun oradan başlayabilir.
+- Bölüm 1 (0–99): çelik kirişler. Bölüm 2 (100–199): kısa, kayan kirişler (oyuncuyu taşır). Bölüm 3 (200–299): kaygan kirişler. 300+: karışık.
+- Otomatik zıplama (OTO): açıkken karakter her inişte kendiliğinden zıplar.
+- Kupa, ödül kupasıdır; karakter kupa ya da fincan değildir (başka bir oyunun karakterine benzememek için).
+
+## Önceki çalışma adı: Gökdelen Swing
 
 1930'ların lastik hortum çizgi filmleri tarzında, sonsuz yukarı tırmanma oyunu. İlham: Icy Tower'ın hız-zıplama-kombo çekirdeği; görsel dil: dönemin çizgi filmleri. Hiçbir oyunun karakteri, logosu, menüsü ya da adı kullanılmaz.
 
