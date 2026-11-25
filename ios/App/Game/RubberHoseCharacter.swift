@@ -4,23 +4,29 @@ import SpriteKit
 /// Konum her karede akıcı ilerler; çizim ise saniyede 12 kez, küçük titremelerle yenilenir
 /// (elle çizilmiş animasyonun "kaynayan çizgi" hissi). Orijin: ayakların ortası.
 final class RubberHoseCharacter: SKNode {
+    private let style: CharacterStyle
     private let facingNode = SKNode()
+    /// Takla için: gövdenin ortasında döner.
+    private let spinNode = SKNode()
     private let squashNode = SKNode()
 
     private let legBack = RubberHoseCharacter.limb()
     private let legFront = RubberHoseCharacter.limb()
     private let armBack = RubberHoseCharacter.limb()
     private let armFront = RubberHoseCharacter.limb()
-    private let shoeBack = RubberHoseCharacter.filled(Palette.ink)
-    private let shoeFront = RubberHoseCharacter.filled(Palette.ink)
-    private let gloveBack = RubberHoseCharacter.glove()
-    private let gloveFront = RubberHoseCharacter.glove()
-    private let body = RubberHoseCharacter.filled(Palette.ink)
-    private let head = RubberHoseCharacter.filled(Palette.ink)
-    private let face = RubberHoseCharacter.filled(Palette.cream, stroke: false)
+    private let shoeBack: SKShapeNode
+    private let shoeFront: SKShapeNode
+    private let gloveBack: SKShapeNode
+    private let gloveFront: SKShapeNode
+    private let body: SKShapeNode
+    private let head: SKShapeNode
+    private let face: SKShapeNode
     private let eyes = RubberHoseCharacter.filled(Palette.ink, stroke: false)
     private let nose = RubberHoseCharacter.filled(Palette.ink, stroke: false)
     private let mouth = RubberHoseCharacter.limb(width: 1.5)
+    private let accessoryBack: SKShapeNode
+    private let accessoryFront: SKShapeNode
+    private let accessoryDetail: SKShapeNode
 
     private var vx = 0.0
     private var vy = 0.0
@@ -28,13 +34,30 @@ final class RubberHoseCharacter: SKNode {
     private var runPhase = 0.0
     private var step = 0
 
-    override init() {
+    private static let bodyCenter: CGFloat = 24
+
+    init(style: CharacterStyle) {
+        self.style = style
+        shoeBack = RubberHoseCharacter.filled(style.shoes)
+        shoeFront = RubberHoseCharacter.filled(style.shoes)
+        gloveBack = RubberHoseCharacter.glove(style.gloves)
+        gloveFront = RubberHoseCharacter.glove(style.gloves)
+        body = RubberHoseCharacter.filled(style.body)
+        head = RubberHoseCharacter.filled(style.body)
+        face = RubberHoseCharacter.filled(style.face, stroke: false)
+        accessoryBack = RubberHoseCharacter.filled(style.accent)
+        accessoryFront = RubberHoseCharacter.filled(style.accent)
+        accessoryDetail = RubberHoseCharacter.filled(Palette.ink)
         super.init()
+        alpha = style.alpha
         addChild(facingNode)
-        facingNode.addChild(squashNode)
-        // Çizim sırası: arkadaki uzuvlar, gövde, baş, öndeki uzuvlar.
-        for node in [legBack, shoeBack, armBack, gloveBack, body, head, face, eyes, nose, mouth,
-                     legFront, shoeFront, armFront, gloveFront] {
+        facingNode.addChild(spinNode)
+        spinNode.position = CGPoint(x: 0, y: Self.bodyCenter)
+        spinNode.addChild(squashNode)
+        squashNode.position = CGPoint(x: 0, y: -Self.bodyCenter)
+        // Çizim sırası: arka süs, arkadaki uzuvlar, gövde, baş, yüz, ön süs, öndeki uzuvlar.
+        for node in [accessoryBack, legBack, shoeBack, armBack, gloveBack, body, head, face, eyes, nose, mouth,
+                     accessoryFront, accessoryDetail, legFront, shoeFront, armFront, gloveFront] {
             squashNode.addChild(node)
         }
         redraw()
@@ -78,6 +101,20 @@ final class RubberHoseCharacter: SKNode {
     func playLand() {
         squashNode.removeAction(forKey: "jump")
         squashNode.run(steppedScales([(1.35, 0.68), (1.12, 0.88), (1, 1)]), withKey: "land")
+    }
+
+    /// Duvar taklası: gövde ortası etrafında, kesik (12 fps) tam tur.
+    func playFlip(towards direction: Int) {
+        spinNode.removeAction(forKey: "flip")
+        spinNode.zRotation = 0
+        let turn = CGFloat(direction >= 0 ? -1 : 1) * .pi / 3
+        var actions: [SKAction] = []
+        for _ in 0..<6 {
+            actions.append(.rotate(byAngle: turn, duration: 0))
+            actions.append(.wait(forDuration: 1.0 / 12.0))
+        }
+        actions.append(.rotate(toAngle: 0, duration: 0))
+        spinNode.run(.sequence(actions), withKey: "flip")
     }
 
     // MARK: Çizim
@@ -156,6 +193,43 @@ final class RubberHoseCharacter: SKNode {
                              startAngle: .pi * 1.15, endAngle: .pi * 1.85, clockwise: false)
         }
         mouth.path = mouthPath
+
+        drawAccessory(bob: bob + j(21) * 0.5)
+    }
+
+    /// Baş süsleri: köpek kulağı, kedi kulağı, silindir şapka, pervaneli kasket.
+    private func drawAccessory(bob: CGFloat) {
+        let back = CGMutablePath()
+        let front = CGMutablePath()
+        let detail = CGMutablePath()
+        switch style.accessory {
+        case .none:
+            break
+        case .dogEars:
+            // Sarkık kulaklar: başın iki yanında.
+            let flap: CGFloat = grounded ? 0 : (vy > 0 ? -3 : 3)
+            back.addEllipse(in: CGRect(x: -16, y: 31 + bob + flap, width: 9, height: 17))
+            front.addEllipse(in: CGRect(x: 9, y: 31 + bob - flap, width: 9, height: 17))
+        case .catEars:
+            back.addLines(between: [CGPoint(x: -12, y: 47 + bob), CGPoint(x: -9, y: 60 + bob), CGPoint(x: -3, y: 52 + bob)])
+            back.closeSubpath()
+            front.addLines(between: [CGPoint(x: 3, y: 52 + bob), CGPoint(x: 8, y: 60 + bob), CGPoint(x: 12, y: 47 + bob)])
+            front.closeSubpath()
+        case .topHat:
+            detail.addRect(CGRect(x: -12, y: 51 + bob, width: 24, height: 3.5))
+            detail.addRect(CGRect(x: -7.5, y: 53 + bob, width: 15, height: 15))
+            front.addRect(CGRect(x: -7.5, y: 55 + bob, width: 15, height: 3.5))
+        case .propeller:
+            back.addArc(center: CGPoint(x: 0, y: 51 + bob), radius: 9.5, startAngle: 0, endAngle: .pi, clockwise: false)
+            back.closeSubpath()
+            detail.addRect(CGRect(x: -0.8, y: 59 + bob, width: 1.6, height: 5))
+            // Pervane kanatları: her karede farklı genişlik, dönüyormuş gibi.
+            let spread: CGFloat = [9, 4, 9, 2][step % 4]
+            front.addEllipse(in: CGRect(x: -spread, y: 63 + bob, width: spread * 2, height: 3))
+        }
+        accessoryBack.path = back
+        accessoryFront.path = front
+        accessoryDetail.path = detail
     }
 
     /// Eklemsiz "lastik hortum" uzuv: iki uç arasında tek bir yumuşak eğri.
@@ -213,11 +287,38 @@ final class RubberHoseCharacter: SKNode {
         return node
     }
 
-    private static func glove() -> SKShapeNode {
+    private static func glove(_ color: SKColor) -> SKShapeNode {
         let node = SKShapeNode()
-        node.fillColor = .white
+        node.fillColor = color
         node.strokeColor = Palette.ink
         node.lineWidth = 1.6
         return node
+    }
+}
+
+/// Karakter ekranındaki önizleme: tek bir karakter, boşta sallanır.
+final class CharacterPreviewScene: SKScene {
+    private let character: RubberHoseCharacter
+    private var lastTick: TimeInterval = 0
+    private var step = 0
+
+    init(character: GameCharacter) {
+        self.character = RubberHoseCharacter(style: character.style)
+        super.init(size: CGSize(width: 90, height: 100))
+        backgroundColor = .clear
+        scaleMode = .aspectFit
+        self.character.position = CGPoint(x: 45, y: 12)
+        self.character.setScale(1.3)
+        addChild(self.character)
+    }
+
+    required init?(coder aDecoder: NSCoder) { return nil }
+
+    override func update(_ currentTime: TimeInterval) {
+        if currentTime - lastTick >= 1.0 / 12.0 {
+            lastTick = currentTime
+            step &+= 1
+            character.tick(step: step)
+        }
     }
 }

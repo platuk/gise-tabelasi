@@ -7,6 +7,14 @@
 - Otomatik zıplama (OTO): açıkken karakter her inişte kendiliğinden zıplar.
 - Kupa, ödül kupasıdır; karakter kupa ya da fincan değildir (başka bir oyunun karakterine benzememek için).
 
+## Yardım, baloncuklar, karakterler, diriliş
+
+- Yardımcı el: inişte kenarı ≤20 pt kaçıran oyuncu kirişe çekilir (150 pt/sn). Havada hızla (≥300 pt/sn) duvara çarpınca takla + yükselme, ulaşılabilecek en yüksek kirişe yönlendirme.
+- Baloncuklar (kat 8+, %8 olasılık): roket (+50 kat), ağır çekim (6 sn, %50), adrenalin (8 sn, ×1.35 hız), kalkan (10 sn).
+- 5 karakter, kupa cüzdanıyla açılır (0/1/2/3/5). Gerçek para yok. Yalnızca görünüş.
+- Oyun başına bir bedava diriliş: hayalet süzülür, iris, son kirişe dönüş, 3 sn kalkan.
+- Doğrulama: bot 7 kulede tüm bölümleri geçiyor (JS kopyası + Swift testleri).
+
 ## Önceki çalışma adı: Gökdelen Swing
 
 1930'ların lastik hortum çizgi filmleri tarzında, sonsuz yukarı tırmanma oyunu. İlham: Icy Tower'ın hız-zıplama-kombo çekirdeği; görsel dil: dönemin çizgi filmleri. Hiçbir oyunun karakteri, logosu, menüsü ya da adı kullanılmaz.

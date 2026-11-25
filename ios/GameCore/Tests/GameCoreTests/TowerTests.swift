@@ -266,6 +266,183 @@ final class TowerTests: XCTestCase {
         XCTAssertGreaterThan(moved, 1)
     }
 
+    // MARK: Gizli yardım ve duvar taklası
+
+    func testLandingAssistSavesNearMiss() {
+        var sim = TowerSimulation(seed: 7)
+        let girder = sim.platform(floor: 1)
+        let foot = sim.config.playerWidth * 0.3
+        // Kenarı 10 pt kaçıracak şekilde, kirişin hemen üstünden düşüyor.
+        sim.isGrounded = false
+        sim.x = girder.maxX + foot + 10
+        sim.y = girder.y + 30
+        sim.vy = -100
+        var landedFloor: Int?
+        for _ in 0..<120 {
+            for event in sim.step(dt: dt, input: TowerInput()) {
+                if case .landed(let floor, _) = event { landedFloor = floor }
+            }
+            if landedFloor != nil { break }
+        }
+        XCTAssertEqual(landedFloor, 1)
+    }
+
+    func testLandingAssistDoesNotRescueClearMiss() {
+        var sim = TowerSimulation(seed: 7)
+        let girder = sim.platform(floor: 1)
+        let foot = sim.config.playerWidth * 0.3
+        sim.isGrounded = false
+        sim.x = min(sim.config.playMaxX - 14, girder.maxX + foot + 45)
+        sim.y = girder.y + 30
+        sim.vy = -100
+        var landedFloor: Int?
+        for _ in 0..<240 {
+            for event in sim.step(dt: dt, input: TowerInput()) {
+                if case .landed(let floor, _) = event { landedFloor = floor }
+            }
+            if landedFloor != nil { break }
+        }
+        if girder.maxX + foot + 45 <= sim.config.playMaxX - 14 {
+            XCTAssertEqual(landedFloor, 0)
+        }
+    }
+
+    func testWallKickLaunchesUpward() {
+        var sim = TowerSimulation(seed: 1)
+        sim.isGrounded = false
+        sim.y = 200
+        sim.vy = -50
+        sim.x = sim.config.playMaxX - sim.config.playerWidth / 2 - 1
+        sim.vx = sim.config.maxRunSpeed
+        let events = sim.step(dt: dt, input: TowerInput(direction: 1))
+        XCTAssertTrue(events.contains(.wallKick(side: 1)))
+        XCTAssertGreaterThan(sim.vy, sim.config.wallKickVelocity * 0.9)
+        XCTAssertLessThan(sim.vx, 0)
+        XCTAssertTrue(sim.wallKickGuiding)
+    }
+
+    func testSlowWallTouchIsNotAKick() {
+        var sim = TowerSimulation(seed: 1)
+        sim.isGrounded = false
+        sim.y = 200
+        sim.x = sim.config.playMaxX - sim.config.playerWidth / 2 - 1
+        sim.vx = 150
+        let events = sim.step(dt: dt, input: TowerInput())
+        XCTAssertTrue(events.contains(.wallBounce(side: 1)))
+        XCTAssertFalse(events.contains(.wallKick(side: 1)))
+    }
+
+    // MARK: Baloncuklar
+
+    func testBubblesAreDeterministicAndVaried() {
+        let config = TowerConfig()
+        var a = PlatformGenerator(config: config, seed: 77)
+        var b = PlatformGenerator(config: config, seed: 77)
+        var kinds = Set<PowerUp>()
+        var count = 0
+        for floor in 0...1500 {
+            let p = a.platform(floor: floor)
+            XCTAssertEqual(p.bubble, b.platform(floor: floor).bubble)
+            if let bubble = p.bubble {
+                XCTAssertGreaterThanOrEqual(floor, config.bubbleMinFloor)
+                XCTAssertFalse(p.isMilestone)
+                kinds.insert(bubble)
+                count += 1
+            }
+        }
+        XCTAssertEqual(kinds, Set(PowerUp.allCases))
+        XCTAssertGreaterThan(count, 60)
+        XCTAssertLessThan(count, 200)
+    }
+
+    /// Baloncuklu bir kirişin ortasında durup düz zıplayan oyuncu baloncuğu alır.
+    private func collectFirstBubble(_ kind: PowerUp, seed: UInt64 = 21) -> (TowerSimulation, [TowerEvent])? {
+        var sim = TowerSimulation(seed: seed)
+        guard let floor = (8..<2000).first(where: { sim.platform(floor: $0).bubble == kind }) else { return nil }
+        sim.x = sim.platform(floor: floor).centerX
+        sim.land(onFloor: floor)
+        var events = sim.step(dt: dt, input: TowerInput(jump: true))
+        for _ in 0..<120 where !events.contains(.powerUp(kind)) {
+            events += sim.step(dt: dt, input: TowerInput())
+        }
+        return events.contains(.powerUp(kind)) ? (sim, events) : nil
+    }
+
+    func testBoostBubbleFliesFiftyFloors() throws {
+        var (sim, _) = try XCTUnwrap(collectFirstBubble(.boost))
+        let from = sim.boost?.targetFloor ?? -1
+        XCTAssertNotNil(sim.boost)
+        var finished: Int?
+        for _ in 0..<Int(sim.config.boostDuration / dt) + 10 {
+            for event in sim.step(dt: dt, input: TowerInput()) {
+                if case .boostFinished(let floor) = event { finished = floor }
+            }
+            if finished != nil { break }
+        }
+        XCTAssertEqual(finished, from)
+        XCTAssertEqual(sim.currentFloor, from)
+        XCTAssertGreaterThanOrEqual(sim.highestFloor, from)
+        XCTAssertTrue(sim.isGrounded)
+        XCTAssertNil(sim.boost)
+    }
+
+    func testEachBubbleCanBeCollected() throws {
+        for kind in PowerUp.allCases {
+            XCTAssertNotNil(collectFirstBubble(kind), "\(kind)")
+        }
+    }
+
+    func testSlowTimeSlowsTheWorld() {
+        var sim = TowerSimulation(seed: 1)
+        sim.apply(.slowTime)
+        for _ in 0..<120 { _ = sim.step(dt: dt, input: TowerInput()) }
+        XCTAssertEqual(sim.elapsed, 1.0 * sim.config.slowFactor, accuracy: 0.01)
+        XCTAssertEqual(sim.slowRemaining, sim.config.slowDuration - 1, accuracy: 0.01)
+    }
+
+    func testAdrenalineRaisesTopSpeed() {
+        var sim = TowerSimulation(seed: 1)
+        sim.x = sim.config.playMinX + 20
+        sim.apply(.adrenaline)
+        for _ in 0..<50 { _ = sim.step(dt: dt, input: TowerInput(direction: 1)) }
+        XCTAssertGreaterThan(sim.vx, sim.config.maxRunSpeed)
+    }
+
+    func testShieldBouncesOffTheBurn() {
+        var sim = TowerSimulation(seed: 1)
+        sim.land(onFloor: sim.config.burnStartFloor)
+        _ = sim.step(dt: dt, input: TowerInput())
+        sim.apply(.shield)
+        sim.burnY = sim.y + 5
+        let events = sim.step(dt: dt, input: TowerInput())
+        XCTAssertTrue(events.contains(.shieldSaved))
+        XCTAssertFalse(sim.isDead)
+        XCTAssertLessThan(sim.burnY, sim.y)
+    }
+
+    // MARK: Diriliş
+
+    func testOneFreeRespawn() {
+        var sim = TowerSimulation(seed: 1)
+        sim.land(onFloor: sim.config.burnStartFloor)
+        func runUntilDeath() -> Bool {
+            for _ in 0..<(120 * 90) where sim.step(dt: dt, input: TowerInput()).contains(.died) { return true }
+            return sim.isDead
+        }
+        XCTAssertTrue(runUntilDeath())
+        XCTAssertTrue(sim.canRespawn)
+        let events = sim.respawn()
+        guard case .respawned(let floor)? = events.first else { return XCTFail("diriliş olmadı") }
+        XCTAssertFalse(sim.isDead)
+        XCTAssertTrue(sim.isGrounded)
+        XCTAssertEqual(sim.currentFloor, floor)
+        XCTAssertLessThan(sim.burnY, sim.y)
+        XCTAssertGreaterThan(sim.shieldRemaining, 0)
+        XCTAssertTrue(runUntilDeath())
+        XCTAssertFalse(sim.canRespawn)
+        XCTAssertEqual(sim.respawn(), [])
+    }
+
     // MARK: Oynanabilirlik
 
     /// Basit bir bot her bölümü tırmanabilmeli: kuralların ve kiriş yerleşiminin oynanabilir olduğunun kanıtı.

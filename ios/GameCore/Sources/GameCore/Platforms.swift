@@ -27,6 +27,18 @@ public struct SplitMix64: Equatable, Sendable {
     }
 }
 
+/// Kirişlerin üstünde süzülen sürpriz baloncuklar.
+public enum PowerUp: String, CaseIterable, Equatable, Sendable {
+    /// 50 kat yukarı uçuş.
+    case boost
+    /// Dünya bir süre yavaşlar.
+    case slowTime
+    /// Bir süre daha hızlı koşu, daha yüksek zıplama.
+    case adrenaline
+    /// Bir süre yanan film yakamaz.
+    case shield
+}
+
 public enum PlatformKind: Equatable, Sendable {
     /// Sabit çelik kiriş.
     case steel
@@ -45,14 +57,18 @@ public struct Platform: Equatable, Sendable {
     public let y: Double
     public let isMilestone: Bool
     public let kind: PlatformKind
+    /// Kirişin üstünde (taban merkezinde, `bubbleHeight` yukarıda) süzülen baloncuk.
+    public let bubble: PowerUp?
 
-    public init(floor: Int, minX: Double, maxX: Double, y: Double, isMilestone: Bool, kind: PlatformKind = .steel) {
+    public init(floor: Int, minX: Double, maxX: Double, y: Double, isMilestone: Bool,
+                kind: PlatformKind = .steel, bubble: PowerUp? = nil) {
         self.floor = floor
         self.minX = minX
         self.maxX = maxX
         self.y = y
         self.isMilestone = isMilestone
         self.kind = kind
+        self.bubble = bubble
     }
 
     public var width: Double { maxX - minX }
@@ -111,6 +127,8 @@ public struct PlatformGenerator: Sendable {
         let amplitudeRoll = rng.next(in: config.slidingAmplitude)
         let speedRoll = rng.next(in: config.slidingSpeed)
         let phaseRoll = rng.nextUnit() * 2 * .pi
+        let bubbleRoll = rng.nextUnit()
+        let bubbleKindRoll = rng.nextUnit()
 
         var width = max(config.platformMinWidth, config.platformStartWidth - Double(floor) * config.platformShrinkPerFloor)
         let isSliding: Bool
@@ -154,6 +172,18 @@ public struct PlatformGenerator: Sendable {
         } else {
             kind = .steel
         }
-        return Platform(floor: floor, minX: center - width / 2, maxX: center + width / 2, y: y, isMilestone: false, kind: kind)
+
+        // Baloncuk: roket nadir, diğerleri daha sık.
+        var bubble: PowerUp?
+        if floor >= config.bubbleMinFloor && bubbleRoll < config.bubbleChance {
+            switch bubbleKindRoll {
+            case ..<0.15: bubble = .boost
+            case ..<0.45: bubble = .slowTime
+            case ..<0.75: bubble = .adrenaline
+            default: bubble = .shield
+            }
+        }
+        return Platform(floor: floor, minX: center - width / 2, maxX: center + width / 2, y: y, isMilestone: false,
+                        kind: kind, bubble: bubble)
     }
 }

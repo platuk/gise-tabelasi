@@ -18,18 +18,33 @@ public struct Combo: Equatable, Sendable {
     public internal(set) var timeLeft: Double
 }
 
+/// Roket baloncuğunun uçuşu.
+public struct Boost: Equatable, Sendable {
+    public let targetFloor: Int
+    public let startX: Double
+    public let startY: Double
+    public internal(set) var progress: Double
+}
+
 public enum TowerEvent: Equatable, Sendable {
     /// `power`: 0 (duran) ile 1 (tam hız) arası.
     case jumped(power: Double)
     case landed(floor: Int, floorsClimbed: Int)
     case wallBounce(side: Int)
+    /// Havada duvara hızla çarpınca takla atıp yükselme.
+    case wallKick(side: Int)
     case comboExtended(jumps: Int, floors: Int)
     case comboEnded(jumps: Int, floors: Int, points: Int)
     case newMilestone(floor: Int)
     /// Her 100 katta bir kupa: bu kat aynı zamanda kayıt noktası ve yeni bölümün başı.
     case trophyEarned(floor: Int)
+    case powerUp(PowerUp)
+    case boostFinished(floor: Int)
+    /// Kalkan, yanan filmden kurtardı.
+    case shieldSaved
     case burnStarted
     case died
+    case respawned(floor: Int)
 }
 
 /// Oyunun tüm kuralları. Arayüzden bağımsız, sabit zaman adımlı, tamamen deterministik.
@@ -37,13 +52,17 @@ public enum TowerEvent: Equatable, Sendable {
 /// Kurallar:
 /// - Koştukça hız kazanılır; hızlı koşan daha yükseğe zıplar.
 /// - Kirişler tek yönlüdür: alttan geçilir, üstten basılır.
-/// - Duvara çarpan oyuncu hızını büyük ölçüde koruyarak geri seker.
+/// - Duvara çarpan oyuncu hızını büyük ölçüde koruyarak geri seker; havada hızla çarparsa
+///   takla atıp yükselir ve ulaşabileceği en yüksek kirişe doğru yönlendirilir.
+/// - Gizli yardım: inişte kirişin kenarını az farkla kaçıran oyuncu kirişe hafifçe çekilir.
 /// - 2 veya daha fazla kat atlayan iniş kombo başlatır/uzatır (3 sn içinde).
 ///   Kombo; tek kat atlanınca, aşağı düşülünce ya da süre dolunca biter.
 ///   En az 2 zıplamalık kombo, (kat sayısı)² puan verir.
 /// - Her 100 katta bir kupa kazanılır; o kat kayıt noktasıdır ve yeni bölüm başlar.
 /// - Kayan kirişler üzerindeki oyuncuyu taşır; kaygan kirişlerde sürtünme düşüktür.
+/// - Baloncuklar: roket (50 kat), ağır çekim, adrenalin, kalkan.
 /// - Başlangıçtan 5 kat sonra alttan yanan film yükselir; ona yakalanan oyun biter.
+///   Oyun başına bir kez bedava diriliş vardır (`respawn()`).
 public struct TowerSimulation: Sendable {
     public let config: TowerConfig
     public let startFloor: Int
@@ -65,7 +84,17 @@ public struct TowerSimulation: Sendable {
     public internal(set) var burnY: Double
     public internal(set) var burnSpeed: Double = 0
     public internal(set) var isDead = false
+    /// Dünya zamanı (ağır çekimde yavaş akar).
     public internal(set) var elapsed: Double = 0
+
+    public internal(set) var collectedBubbles: Set<Int> = []
+    public internal(set) var boost: Boost?
+    public internal(set) var slowRemaining: Double = 0
+    public internal(set) var adrenalineRemaining: Double = 0
+    public internal(set) var shieldRemaining: Double = 0
+    public internal(set) var respawnsUsed = 0
+    /// Duvar taklasından sonra iniş yönlendirmesi sürüyor mu.
+    public internal(set) var wallKickGuiding = false
 
     private var coyoteTimer: Double = 0
     private var jumpBuffer: Double = 0
@@ -92,6 +121,12 @@ public struct TowerSimulation: Sendable {
         highestFloor / config.milestoneInterval * config.milestoneInterval
     }
 
+    public var canRespawn: Bool { isDead && respawnsUsed < config.freeRespawns }
+
+    private var maxSpeed: Double {
+        adrenalineRemaining > 0 ? config.maxRunSpeed * config.adrenalineSpeedFactor : config.maxRunSpeed
+    }
+
     public mutating func platform(floor: Int) -> Platform {
         generator.platform(floor: floor)
     }
@@ -101,11 +136,29 @@ public struct TowerSimulation: Sendable {
         platform(floor: floor).bounds(at: elapsed)
     }
 
-    public mutating func step(dt: Double, input: TowerInput) -> [TowerEvent] {
-        guard !isDead, dt > 0 else { return [] }
+    /// Kattaki baloncuğun konumu (kirişin taban merkezinin üstünde).
+    public func bubblePosition(of platform: Platform) -> (x: Double, y: Double) {
+        (platform.centerX, platform.y + config.bubbleHeight)
+    }
+
+    public mutating func step(dt realDt: Double, input: TowerInput) -> [TowerEvent] {
+        guard !isDead, realDt > 0 else { return [] }
         var events: [TowerEvent] = []
+
+        // Ağır çekim yalnızca dünyayı yavaşlatır; baloncuk süreleri gerçek zamanla akar.
+        let dt = slowRemaining > 0 ? realDt * config.slowFactor : realDt
+        slowRemaining = max(0, slowRemaining - realDt)
+        adrenalineRemaining = max(0, adrenalineRemaining - realDt)
+        shieldRemaining = max(0, shieldRemaining - realDt)
+
         let previousTime = elapsed
         elapsed += dt
+
+        if boost != nil {
+            events += stepBoost(dt: dt)
+            events += stepBurn(dt: dt)
+            return events
+        }
 
         let direction = input.direction.signum()
         jumpBuffer = input.jump ? config.jumpBufferTime : max(0, jumpBuffer - dt)
@@ -113,30 +166,44 @@ public struct TowerSimulation: Sendable {
 
         let standing: Platform? = isGrounded ? platform(floor: currentFloor) : nil
         let onSlippery = standing?.isSlippery ?? false
+        let adrenaline = adrenalineRemaining > 0 ? config.adrenalineSpeedFactor : 1
 
         // Yatay hareket
         if direction != 0 {
             facing = direction
             let acceleration: Double
             if isGrounded {
-                acceleration = onSlippery ? config.slipperyAcceleration : config.groundAcceleration
+                acceleration = (onSlippery ? config.slipperyAcceleration : config.groundAcceleration) * adrenaline
             } else {
-                acceleration = config.airAcceleration
+                acceleration = config.airAcceleration * adrenaline
             }
             vx += Double(direction) * acceleration * dt
         } else if isGrounded {
             let friction = (onSlippery ? config.slipperyFriction : config.groundFriction) * dt
             vx = abs(vx) <= friction ? 0 : vx - friction * (vx > 0 ? 1 : -1)
         }
-        vx = min(max(vx, -config.maxRunSpeed), config.maxRunSpeed)
+
+        // Duvar taklası yönlendirmesi: ulaşılabilecek en yüksek kirişin ortasına doğru.
+        if wallKickGuiding && !isGrounded {
+            let peak = y + max(0, vy) * max(0, vy) / (2 * config.gravity)
+            let targetFloor = Int((peak / config.floorSpacing).rounded(.down))
+            if targetFloor > currentFloor {
+                let target = bounds(floor: targetFloor)
+                let dx = (target.minX + target.maxX) / 2 - x
+                if abs(dx) > 8 {
+                    vx += (dx > 0 ? 1 : -1) * config.wallKickSteer * dt
+                }
+            }
+        }
+        vx = min(max(vx, -maxSpeed), maxSpeed)
 
         // Zıplama
         if jumpBuffer > 0 && coyoteTimer > 0 {
-            vy = config.jumpVelocity(forSpeed: vx)
+            vy = (config.baseJumpVelocity + config.jumpSpeedBonus * abs(vx)) * (adrenalineRemaining > 0 ? 1.08 : 1)
             isGrounded = false
             coyoteTimer = 0
             jumpBuffer = 0
-            events.append(.jumped(power: abs(vx) / config.maxRunSpeed))
+            events.append(.jumped(power: min(1, abs(vx) / config.maxRunSpeed)))
         }
 
         let previousY = y
@@ -151,19 +218,40 @@ public struct TowerSimulation: Sendable {
             x += standing.offset(at: elapsed) - standing.offset(at: previousTime)
         }
 
-        // Duvarlardan sekme
+        // Gizli yardım: düşerken bir alttaki kirişin kenarını az farkla kaçırıyorsan kirişe çekil.
+        if !isGrounded && vy < 0 {
+            let below = platform(floor: Int((y / config.floorSpacing).rounded(.down)))
+            let gap = y - below.y
+            if gap >= 0 && gap < 70 {
+                let (minX, maxX) = below.bounds(at: elapsed)
+                let foot = config.playerWidth * 0.3
+                let pull = config.landingAssistSpeed * dt
+                if x + foot < minX && minX - (x + foot) <= config.landingAssistMargin {
+                    x += min(pull, minX - (x + foot))
+                } else if x - foot > maxX && (x - foot) - maxX <= config.landingAssistMargin {
+                    x -= min(pull, (x - foot) - maxX)
+                }
+            }
+        }
+
+        // Duvarlardan sekme (havada hızlıysa takla)
         let half = config.playerWidth / 2
+        var hitWall = 0
         if x - half < config.playMinX {
             x = config.playMinX + half
-            if vx < 0 {
-                vx = -vx * config.wallBounceDamping
-                events.append(.wallBounce(side: -1))
-            }
+            if vx < 0 { hitWall = -1 }
         } else if x + half > config.playMaxX {
             x = config.playMaxX - half
-            if vx > 0 {
-                vx = -vx * config.wallBounceDamping
-                events.append(.wallBounce(side: 1))
+            if vx > 0 { hitWall = 1 }
+        }
+        if hitWall != 0 {
+            let impact = abs(vx)
+            vx = -vx * config.wallBounceDamping
+            events.append(.wallBounce(side: hitWall))
+            if !isGrounded && impact >= config.wallKickMinSpeed {
+                vy = max(vy, config.wallKickVelocity)
+                wallKickGuiding = true
+                events.append(.wallKick(side: hitWall))
             }
         }
 
@@ -188,6 +276,8 @@ public struct TowerSimulation: Sendable {
             }
         }
 
+        events += collectBubbles()
+
         // Kombo süresi
         if var running = combo {
             running.timeLeft -= dt
@@ -198,24 +288,29 @@ public struct TowerSimulation: Sendable {
             }
         }
 
-        // Yanan film
-        if !burnActive && highestFloor - startFloor >= config.burnStartFloor {
-            burnActive = true
-            burnY = y - config.burnStartDistance
-            events.append(.burnStarted)
-        }
-        if burnActive {
-            burnElapsed += dt
-            burnSpeed = min(config.burnMaxSpeed, config.burnBaseSpeed + config.burnAcceleration * burnElapsed)
-            burnY = max(burnY + burnSpeed * dt, y - config.burnMaxLag)
-            if y < burnY {
-                isDead = true
-                events += endCombo()
-                events.append(.died)
-            }
-        }
-
+        events += stepBurn(dt: dt)
         return events
+    }
+
+    /// Bedava diriliş: en son basılan kirişe geri döner, film geri çekilir, kısa bir kalkan verilir.
+    public mutating func respawn() -> [TowerEvent] {
+        guard canRespawn else { return [] }
+        respawnsUsed += 1
+        isDead = false
+        boost = nil
+        combo = nil
+        wallKickGuiding = false
+        let floor = max(startFloor, currentFloor)
+        let (minX, maxX) = bounds(floor: floor)
+        x = (minX + maxX) / 2
+        y = platform(floor: floor).y
+        vx = 0
+        vy = 0
+        isGrounded = true
+        burnY = y - config.burnStartDistance
+        burnElapsed = max(0, burnElapsed - 15)
+        shieldRemaining = config.respawnShield
+        return [.respawned(floor: floor)]
     }
 
     @discardableResult
@@ -225,6 +320,7 @@ public struct TowerSimulation: Sendable {
         y = target.y
         vy = 0
         isGrounded = true
+        wallKickGuiding = false
         let climbed = floor - currentFloor
         currentFloor = floor
         events.append(.landed(floor: floor, floorsClimbed: climbed))
@@ -255,6 +351,92 @@ public struct TowerSimulation: Sendable {
             let card = floor / cardInterval * cardInterval
             if floor / cardInterval > previous / cardInterval && !(trophyEarned && card % chapterLength == 0) {
                 events.append(.newMilestone(floor: card))
+            }
+        }
+        return events
+    }
+
+    /// Baloncuğu al ve etkisini başlat.
+    @discardableResult
+    mutating func apply(_ powerUp: PowerUp) -> [TowerEvent] {
+        switch powerUp {
+        case .boost:
+            let base = max(currentFloor, Int((y / config.floorSpacing).rounded(.down)))
+            boost = Boost(targetFloor: base + config.boostFloors, startX: x, startY: y, progress: 0)
+            isGrounded = false
+            vx = 0
+            vy = 0
+            wallKickGuiding = false
+        case .slowTime:
+            slowRemaining = config.slowDuration
+        case .adrenaline:
+            adrenalineRemaining = config.adrenalineDuration
+        case .shield:
+            shieldRemaining = config.shieldDuration
+        }
+        return [.powerUp(powerUp)]
+    }
+
+    private mutating func collectBubbles() -> [TowerEvent] {
+        let bodyCenterY = y + config.playerHeight / 2
+        let reach = config.bubbleRadius + config.playerWidth / 2
+        let lowest = max(0, Int(((y - config.bubbleHeight) / config.floorSpacing).rounded(.down)))
+        var events: [TowerEvent] = []
+        for floor in lowest...(lowest + 2) where !collectedBubbles.contains(floor) {
+            let candidate = platform(floor: floor)
+            guard let bubble = candidate.bubble else { continue }
+            let position = bubblePosition(of: candidate)
+            if hypot(position.x - x, position.y - bodyCenterY) <= reach {
+                collectedBubbles.insert(floor)
+                events += apply(bubble)
+                if bubble == .boost { break }
+            }
+        }
+        return events
+    }
+
+    private mutating func stepBoost(dt: Double) -> [TowerEvent] {
+        guard var flight = boost else { return [] }
+        flight.progress = min(1, flight.progress + dt / config.boostDuration)
+        let target = platform(floor: flight.targetFloor)
+        let (minX, maxX) = target.bounds(at: elapsed)
+        let eased = 1 - (1 - flight.progress) * (1 - flight.progress)
+        x = flight.startX + ((minX + maxX) / 2 - flight.startX) * eased
+        y = flight.startY + (target.y - flight.startY) * eased
+        vx = 0
+        vy = config.floorSpacing * Double(config.boostFloors) / config.boostDuration
+        if flight.progress >= 1 {
+            boost = nil
+            var events = land(onFloor: flight.targetFloor)
+            events.append(.boostFinished(floor: flight.targetFloor))
+            return events
+        }
+        boost = flight
+        return []
+    }
+
+    private mutating func stepBurn(dt: Double) -> [TowerEvent] {
+        var events: [TowerEvent] = []
+        if !burnActive && highestFloor - startFloor >= config.burnStartFloor {
+            burnActive = true
+            burnY = y - config.burnStartDistance
+            events.append(.burnStarted)
+        }
+        guard burnActive else { return events }
+        burnElapsed += dt
+        burnSpeed = min(config.burnMaxSpeed, config.burnBaseSpeed + config.burnAcceleration * burnElapsed)
+        burnY = max(burnY + burnSpeed * dt, y - config.burnMaxLag)
+        if y < burnY && boost == nil {
+            if shieldRemaining > 0 {
+                // Kalkan: alevden yukarı sek, film biraz geri çekilsin.
+                vy = config.jumpVelocity(forSpeed: config.maxRunSpeed)
+                isGrounded = false
+                burnY = y - 120
+                events.append(.shieldSaved)
+            } else {
+                isDead = true
+                events += endCombo()
+                events.append(.died)
             }
         }
         return events

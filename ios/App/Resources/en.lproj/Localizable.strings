@@ -8,6 +8,36 @@
 "title.help" = "How to play";
 
 "controls.auto" = "AUTO";
+"title.characters %lld" = "Characters · %lld cups";
+
+"character.tipi" = "Tippy";
+"character.fistik" = "Peanut";
+"character.mirnav" = "Meowly";
+"character.beyefendi" = "Gentleman";
+"character.pervane" = "Propeller";
+
+"shop.title" = "Characters";
+"shop.wallet %lld" = "Cups to spend: %lld";
+"shop.hint" = "Every trophy you win each 100 floors is added here. Spend cups to unlock new characters; there are no real-money purchases.";
+"shop.selected" = "SELECTED";
+"shop.select" = "Select";
+"shop.unlock %lld" = "Unlock · %lld cups";
+
+"powerup.boost" = "ROCKET! +50 FLOORS";
+"powerup.slowTime" = "SLOW MOTION!";
+"powerup.adrenaline" = "ADRENALINE!";
+"powerup.shield" = "SHIELD!";
+"card.shieldSaved" = "SAVED BY THE SHIELD!";
+"card.respawn" = "ONE MORE CHANCE!";
+
+"help.assist.title" = "Helping hand";
+"help.assist.body" = "If you barely miss the edge of a girder, the game gently pulls you onto it. Hit a wall fast while in the air and your character flips and rises, steered toward the highest girder it can reach; use it to build combos.";
+"help.bubbles.title" = "Surprise bubbles";
+"help.bubbles.body" = "Bubbles float above some girders; pass through one to take it. The rocket flies you 50 floors up. Slow motion slows the world for 6 seconds. Adrenaline makes you run faster and jump higher for 8 seconds. The shield protects you from the burning film for 10 seconds. Active effects and their remaining time show at the top of the screen.";
+"help.respawn.title" = "One more chance";
+"help.respawn.body" = "Once per game, when the burning film catches you, you come back for free: you return to the last girder you stood on, the film pulls back, and you get a 3-second shield. If it catches you again, the game ends.";
+"help.characters.title" = "Characters";
+"help.characters.body" = "Every trophy you win is saved as a cup to spend. Use the Characters button on the title screen to unlock four new characters: Peanut (1), Meowly (2), Gentleman (3), Propeller (5). Characters only change the look, not the gameplay.";
 
 "hud.floor %lld" = "FLOOR %lld";
 "hud.score %lld" = "%lld PTS";

@@ -17,7 +17,9 @@ struct GameView: View {
         self.onGameOver = onGameOver
         self.onCheckpoint = onCheckpoint
         self.onAutoJumpChanged = onAutoJumpChanged
-        _scene = State(initialValue: TowerScene(seed: session.seed, startFloor: session.startFloor, autoJump: autoJump))
+        _scene = State(initialValue: TowerScene(
+            seed: session.seed, startFloor: session.startFloor, autoJump: autoJump, character: session.character
+        ))
     }
 
     var body: some View {

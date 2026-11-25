@@ -4,6 +4,7 @@ struct GameSession: Identifiable {
     let id = UUID()
     let seed: UInt64
     let startFloor: Int
+    let character: GameCharacter
 }
 
 struct GameResult: Equatable {
@@ -18,11 +19,21 @@ struct RootView: View {
     @AppStorage("bestFloor") private var bestFloor = 0
     /// En yüksek kupanın katı (100, 200, ...): kayıt noktası. Kupa kazanıldığı an kaydedilir.
     @AppStorage("checkpointFloor") private var checkpointFloor = 0
+    /// Harcanabilir kupalar: her kazanılan kupa +1. Karakter açmak için kullanılır (gerçek para yok).
+    @AppStorage("trophyWallet") private var trophyWallet = 0
+    @AppStorage("unlockedCharacters") private var unlockedCharacters = "0"
+    @AppStorage("selectedCharacter") private var selectedCharacter = 0
     /// Varsayılan açık: kontroller yalnızca sol/sağ olduğundan zıplama kendiliğinden olur.
     @AppStorage("autoJump") private var autoJump = true
     @State private var session: GameSession?
     @State private var result: GameResult?
     @State private var showingHelp = false
+    @State private var showingCharacters = false
+
+    private var character: GameCharacter {
+        let chosen = GameCharacter(rawValue: selectedCharacter) ?? .tipi
+        return GameCharacter.unlocked(from: unlockedCharacters).contains(chosen) ? chosen : .tipi
+    }
 
     var body: some View {
         ZStack {
@@ -31,7 +42,10 @@ struct RootView: View {
                     session: session,
                     autoJump: autoJump,
                     onGameOver: { score, floor in finish(score: score, floor: floor) },
-                    onCheckpoint: { floor in checkpointFloor = max(checkpointFloor, floor) },
+                    onCheckpoint: { floor in
+                        checkpointFloor = max(checkpointFloor, floor)
+                        trophyWallet += 1
+                    },
                     onAutoJumpChanged: { autoJump = $0 }
                 )
                 .id(session.id)
@@ -50,8 +64,11 @@ struct RootView: View {
                     bestScore: bestScore,
                     bestFloor: bestFloor,
                     checkpointFloor: checkpointFloor,
+                    wallet: trophyWallet,
+                    character: character,
                     onPlay: { start(from: 0) },
                     onContinue: { start(from: checkpointFloor) },
+                    onCharacters: { showingCharacters = true },
                     onHelp: { showingHelp = true }
                 )
             }
@@ -60,13 +77,16 @@ struct RootView: View {
         .sheet(isPresented: $showingHelp) {
             HelpView()
         }
+        .sheet(isPresented: $showingCharacters) {
+            CharacterShopView(wallet: $trophyWallet, unlockedStorage: $unlockedCharacters, selected: $selectedCharacter)
+        }
         .preferredColorScheme(.light)
         .statusBarHidden(true)
     }
 
     private func start(from floor: Int) {
         result = nil
-        session = GameSession(seed: UInt64.random(in: 1...UInt64.max), startFloor: max(0, floor))
+        session = GameSession(seed: UInt64.random(in: 1...UInt64.max), startFloor: max(0, floor), character: character)
     }
 
     private func backToMenu() {

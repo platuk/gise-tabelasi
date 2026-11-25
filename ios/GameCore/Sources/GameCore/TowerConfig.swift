@@ -58,6 +58,34 @@ public struct TowerConfig: Equatable, Sendable {
     /// Oyuncu çok uzaklaşırsa film bu mesafeye kadar yetişir.
     public var burnMaxLag: Double = 640
 
+    // Gizli yardım (assist)
+    /// İnişte kirişin kenarını bu kadar kaçıran oyuncu kirişe doğru çekilir.
+    public var landingAssistMargin: Double = 20
+    /// Çekme hızı (pt/sn); küçük tutulur ki fark edilmesin.
+    public var landingAssistSpeed: Double = 150
+    /// Havadayken duvara en az bu hızla çarpan oyuncu takla atıp yükselir.
+    public var wallKickMinSpeed: Double = 300
+    public var wallKickVelocity: Double = 1000
+    /// Takladan sonra ulaşılabilecek en yüksek kirişe doğru yönlendirme ivmesi (pt/sn²).
+    public var wallKickSteer: Double = 700
+
+    // Baloncuklar
+    public var bubbleChance: Double = 0.08
+    public var bubbleMinFloor: Int = 8
+    public var bubbleHeight: Double = 70
+    public var bubbleRadius: Double = 24
+    public var boostFloors: Int = 50
+    public var boostDuration: Double = 2.2
+    public var slowDuration: Double = 6
+    public var slowFactor: Double = 0.5
+    public var adrenalineDuration: Double = 8
+    public var adrenalineSpeedFactor: Double = 1.35
+    public var shieldDuration: Double = 10
+
+    // Diriliş
+    public var freeRespawns: Int = 1
+    public var respawnShield: Double = 3
+
     public init() {}
 
     /// 0'dan başlayan bölüm numarası (0: kat 0–99, 1: kat 100–199, ...).

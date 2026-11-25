@@ -257,6 +257,9 @@ final class HUD: SKNode {
     private let comboLabel = HUD.label(size: 18)
     private let comboBarBack = SKShapeNode()
     private let comboBar = SKShapeNode()
+    /// Etkin baloncukların göstergesi: ikon + kalan saniye.
+    private var powerUpSlots: [PowerUp: (node: SKNode, label: SKLabelNode)] = [:]
+    private var powerUpRowY: CGFloat = 0
     private var shownFloor = -1
     private var shownScore = -1
     private let barWidth: CGFloat = 150
@@ -275,6 +278,19 @@ final class HUD: SKNode {
         for node in [floorLabel, scoreLabel, comboLabel, comboBarBack, comboBar] {
             addChild(node)
         }
+        for kind in [PowerUp.slowTime, .adrenaline, .shield] {
+            let slot = SKNode()
+            let icon = PowerUpIcon.node(kind, size: 22)
+            icon.position = CGPoint(x: -12, y: 0)
+            slot.addChild(icon)
+            let label = HUD.label(size: 16)
+            label.horizontalAlignmentMode = .left
+            label.position = CGPoint(x: 2, y: 0)
+            slot.addChild(label)
+            slot.isHidden = true
+            addChild(slot)
+            powerUpSlots[kind] = (slot, label)
+        }
         hideCombo()
     }
 
@@ -287,6 +303,25 @@ final class HUD: SKNode {
         comboLabel.position = CGPoint(x: 0, y: top - 36)
         comboBarBack.position = CGPoint(x: 0, y: top - 56)
         comboBar.position = comboBarBack.position
+        powerUpRowY = top - 84
+    }
+
+    /// Etkin baloncuk sürelerini gösterir; süresi bitenler gizlenir.
+    func updatePowerUps(_ remaining: [PowerUp: Double]) {
+        let active = [PowerUp.slowTime, .adrenaline, .shield].filter { (remaining[$0] ?? 0) > 0 }
+        let spacing: CGFloat = 62
+        var x = -spacing * CGFloat(active.count - 1) / 2
+        for kind in [PowerUp.slowTime, .adrenaline, .shield] {
+            guard let slot = powerUpSlots[kind] else { continue }
+            let seconds = remaining[kind] ?? 0
+            slot.node.isHidden = seconds <= 0
+            guard seconds > 0 else { continue }
+            slot.node.position = CGPoint(x: x, y: powerUpRowY)
+            slot.label.text = "\(Int(seconds.rounded(.up)))"
+            // Son iki saniyede yanıp söner.
+            slot.node.alpha = seconds < 2 && Int(seconds * 6) % 2 == 0 ? 0.35 : 1
+            x += spacing
+        }
     }
 
     func update(floor: Int, score: Int, comboFraction: Double?) {
@@ -330,6 +365,119 @@ final class HUD: SKNode {
         label.fontColor = Palette.ink
         label.verticalAlignmentMode = .center
         return label
+    }
+}
+
+/// Baloncukların içindeki çizimler (emoji değil, 1930'lar tarzı kalın çizgili şekiller).
+enum PowerUpIcon {
+    static func node(_ kind: PowerUp, size: CGFloat) -> SKNode {
+        let node = SKNode()
+        let s = size / 24
+        func shape(_ path: CGPath, fill: SKColor, line: CGFloat = 2) -> SKShapeNode {
+            let shape = SKShapeNode(path: path)
+            shape.fillColor = fill
+            shape.strokeColor = Palette.ink
+            shape.lineWidth = line * s
+            shape.lineJoin = .round
+            return shape
+        }
+        switch kind {
+        case .boost:
+            let body = CGMutablePath()
+            body.addEllipse(in: CGRect(x: -5 * s, y: -9 * s, width: 10 * s, height: 20 * s))
+            let fins = CGMutablePath()
+            fins.addLines(between: [CGPoint(x: -5 * s, y: -6 * s), CGPoint(x: -10 * s, y: -11 * s), CGPoint(x: -4 * s, y: -9 * s)])
+            fins.addLines(between: [CGPoint(x: 5 * s, y: -6 * s), CGPoint(x: 10 * s, y: -11 * s), CGPoint(x: 4 * s, y: -9 * s)])
+            let flame = CGMutablePath()
+            flame.addLines(between: [CGPoint(x: -3 * s, y: -10 * s), CGPoint(x: 0, y: -17 * s), CGPoint(x: 3 * s, y: -10 * s)])
+            flame.closeSubpath()
+            node.addChild(shape(flame, fill: Palette.flame))
+            node.addChild(shape(fins, fill: Palette.beam))
+            node.addChild(shape(body, fill: Palette.cream))
+            let window = CGMutablePath()
+            window.addEllipse(in: CGRect(x: -2.5 * s, y: 1 * s, width: 5 * s, height: 5 * s))
+            node.addChild(shape(window, fill: Palette.slipperyBeam, line: 1.5))
+        case .slowTime:
+            let glass = CGMutablePath()
+            glass.addLines(between: [CGPoint(x: -7 * s, y: 10 * s), CGPoint(x: 7 * s, y: 10 * s), CGPoint(x: 0, y: 0),
+                                     CGPoint(x: 7 * s, y: -10 * s), CGPoint(x: -7 * s, y: -10 * s), CGPoint(x: 0, y: 0)])
+            glass.closeSubpath()
+            node.addChild(shape(glass, fill: Palette.cream))
+            let sand = CGMutablePath()
+            sand.addLines(between: [CGPoint(x: -4 * s, y: -8 * s), CGPoint(x: 4 * s, y: -8 * s), CGPoint(x: 0, y: -3 * s)])
+            sand.closeSubpath()
+            node.addChild(shape(sand, fill: Palette.milestone, line: 1))
+        case .adrenaline:
+            let bolt = CGMutablePath()
+            bolt.addLines(between: [CGPoint(x: 3 * s, y: 12 * s), CGPoint(x: -6 * s, y: 0), CGPoint(x: -0.5 * s, y: 0),
+                                    CGPoint(x: -3 * s, y: -12 * s), CGPoint(x: 6 * s, y: 2 * s), CGPoint(x: 0.5 * s, y: 2 * s)])
+            bolt.closeSubpath()
+            node.addChild(shape(bolt, fill: Palette.flameCore))
+        case .shield:
+            let crest = CGMutablePath()
+            crest.move(to: CGPoint(x: -8 * s, y: 9 * s))
+            crest.addLine(to: CGPoint(x: 8 * s, y: 9 * s))
+            crest.addLine(to: CGPoint(x: 8 * s, y: 0))
+            crest.addQuadCurve(to: CGPoint(x: 0, y: -11 * s), control: CGPoint(x: 8 * s, y: -7 * s))
+            crest.addQuadCurve(to: CGPoint(x: -8 * s, y: 0), control: CGPoint(x: -8 * s, y: -7 * s))
+            crest.closeSubpath()
+            node.addChild(shape(crest, fill: Palette.slidingBeam))
+            let band = CGMutablePath()
+            band.addRect(CGRect(x: -1.5 * s, y: -9 * s, width: 3 * s, height: 17 * s))
+            node.addChild(shape(band, fill: Palette.cream, line: 1))
+        }
+        return node
+    }
+}
+
+/// Kirişin üstünde süzülen sürpriz baloncuk: yarı saydam köpük, parlak yansıma, içinde etkisinin çizimi.
+final class BubbleNode: SKNode {
+    let kind: PowerUp
+
+    init(kind: PowerUp, radius: CGFloat) {
+        self.kind = kind
+        super.init()
+        let foam = SKShapeNode(circleOfRadius: radius)
+        foam.fillColor = Palette.cream.withAlphaComponent(0.45)
+        foam.strokeColor = Palette.ink
+        foam.lineWidth = 2.5
+        addChild(foam)
+        addChild(PowerUpIcon.node(kind, size: radius * 1.1))
+        let shine = SKShapeNode()
+        let arc = CGMutablePath()
+        arc.addArc(center: .zero, radius: radius * 0.72, startAngle: .pi * 0.55, endAngle: .pi * 0.9, clockwise: false)
+        shine.path = arc
+        shine.strokeColor = .white
+        shine.lineWidth = 3
+        shine.lineCap = .round
+        addChild(shine)
+    }
+
+    required init?(coder aDecoder: NSCoder) { return nil }
+
+    /// Saniyede 12 kez: hafif, kesik süzülme.
+    func bob(step: Int, baseY: CGFloat) {
+        let offsets: [CGFloat] = [0, 1.5, 3, 1.5, 0, -1.5, -3, -1.5]
+        position.y = baseY + offsets[(step + Int(baseY) % 8) % offsets.count]
+    }
+
+    /// Alındığında patlama: halkalar ve damlacıklar.
+    func pop(in parent: SKNode) {
+        for index in 0..<3 {
+            let ring = SKShapeNode(circleOfRadius: 10)
+            ring.strokeColor = Palette.ink
+            ring.lineWidth = 2
+            ring.fillColor = .clear
+            ring.position = position
+            ring.zPosition = zPosition + 1
+            parent.addChild(ring)
+            ring.run(.sequence([
+                .wait(forDuration: Double(index) / 12.0),
+                .group([.scale(to: 3.5, duration: 0.3), .fadeOut(withDuration: 0.3)]),
+                .removeFromParent(),
+            ]))
+        }
+        removeFromParent()
     }
 }
 

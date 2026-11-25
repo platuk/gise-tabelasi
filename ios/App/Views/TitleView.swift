@@ -1,3 +1,4 @@
+import SpriteKit
 import SwiftUI
 
 /// Açılış: 1930'lar film başlık kartı, kupa rafı, baştan ya da kayıt noktasından başlama.
@@ -6,8 +7,11 @@ struct TitleView: View {
     let bestScore: Int
     let bestFloor: Int
     let checkpointFloor: Int
+    let wallet: Int
+    let character: GameCharacter
     let onPlay: () -> Void
     let onContinue: () -> Void
+    let onCharacters: () -> Void
     let onHelp: () -> Void
 
     private var earnedTrophies: Int { checkpointFloor / TrophyTier.floorsPerTrophy }
@@ -70,9 +74,19 @@ struct TitleView: View {
                         .font(Theme.title(16))
                         .foregroundStyle(Theme.ink)
                 }
-                Button(action: onHelp) {
-                    Label("title.help", systemImage: "questionmark.circle")
-                        .font(Theme.title(16))
+                HStack(spacing: 18) {
+                    Button(action: onCharacters) {
+                        HStack(spacing: 6) {
+                            SpriteView(scene: CharacterPreviewScene(character: character), options: [.allowsTransparency])
+                                .frame(width: 30, height: 34)
+                            Text("title.characters \(wallet)")
+                                .font(Theme.title(16))
+                        }
+                    }
+                    Button(action: onHelp) {
+                        Label("title.help", systemImage: "questionmark.circle")
+                            .font(Theme.title(16))
+                    }
                 }
                 .tint(Theme.ink)
                 Spacer().frame(height: 20)

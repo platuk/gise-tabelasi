@@ -24,8 +24,17 @@ final class TowerScene: SKScene {
 
     private let cameraNode = SKCameraNode()
     private let world = SKNode()
-    private let character = RubberHoseCharacter()
+    private let characterStyle: CharacterStyle
+    private let character: RubberHoseCharacter
     private let burn: BurnEdge
+    private var bubbleNodes: [Int: BubbleNode] = [:]
+    /// Etkin baloncukların karakter üzerindeki görünümü.
+    private let shieldRing = SKShapeNode(circleOfRadius: 34)
+    private let adrenalineAura = SKShapeNode(circleOfRadius: 26)
+    private let boostFlame = SKShapeNode()
+    private let slowTint = SKSpriteNode(color: SKColor(red: 0.35, green: 0.45, blue: 0.55, alpha: 1), size: .zero)
+    /// Diriliş gösterisi sürerken oyun durur.
+    private var isRespawning = false
     private let leftWall = WallNode()
     private let rightWall = WallNode()
     private let hud = HUD()
@@ -52,10 +61,12 @@ final class TowerScene: SKScene {
     private var gameOverSent = false
     private let haptics = Haptics()
 
-    init(seed: UInt64, startFloor: Int, autoJump: Bool) {
+    init(seed: UInt64, startFloor: Int, autoJump: Bool, character: GameCharacter) {
         let config = TowerConfig()
         self.config = config
         self.autoJump = autoJump
+        self.characterStyle = character.style
+        self.character = RubberHoseCharacter(style: character.style)
         self.sim = TowerSimulation(config: config, seed: seed, startFloor: startFloor)
         self.burn = BurnEdge(width: CGFloat(config.worldWidth))
         super.init(size: CGSize(width: 390, height: 844))
@@ -87,6 +98,26 @@ final class TowerScene: SKScene {
             controls.zPosition = 600
             hud.zPosition = 700
             controls.setAuto(autoJump)
+
+            shieldRing.strokeColor = Palette.slidingBeam
+            shieldRing.lineWidth = 4
+            shieldRing.fillColor = Palette.slipperyBeam.withAlphaComponent(0.25)
+            shieldRing.position = CGPoint(x: 0, y: 24)
+            shieldRing.zPosition = 2
+            character.addChild(shieldRing)
+            adrenalineAura.fillColor = Palette.flame.withAlphaComponent(0.35)
+            adrenalineAura.strokeColor = .clear
+            adrenalineAura.position = CGPoint(x: 0, y: 24)
+            adrenalineAura.zPosition = -1
+            character.addChild(adrenalineAura)
+            boostFlame.fillColor = Palette.flame
+            boostFlame.strokeColor = Palette.ink
+            boostFlame.lineWidth = 2
+            boostFlame.zPosition = -1
+            character.addChild(boostFlame)
+            slowTint.alpha = 0
+            slowTint.zPosition = 950
+            cameraNode.addChild(slowTint)
         }
         layoutScene()
         syncNodes()
@@ -117,6 +148,7 @@ final class TowerScene: SKScene {
         film.zPosition = 1000
         cameraNode.addChild(film)
         filmOverlay = film
+        slowTint.size = size
 
         let insets = view?.safeAreaInsets ?? .zero
         hud.layout(in: size, topInset: insets.top)
@@ -141,8 +173,8 @@ final class TowerScene: SKScene {
         let roles = Set(touchRoles.values)
         let direction = (roles.contains(.right) ? 1 : 0) - (roles.contains(.left) ? 1 : 0)
 
-        accumulator += frameDt
-        while accumulator >= stepDuration {
+        accumulator += isRespawning ? 0 : frameDt
+        while accumulator >= stepDuration && !isRespawning {
             let jump = pendingJump || (autoJump && sim.isGrounded)
             let events = sim.step(dt: stepDuration, input: TowerInput(direction: direction, jump: jump))
             pendingJump = false
@@ -167,6 +199,16 @@ final class TowerScene: SKScene {
             burn.redraw(step: boilStep)
         }
         filmOverlay?.setStep(boilStep)
+        for (floor, bubble) in bubbleNodes {
+            bubble.bob(step: boilStep, baseY: CGFloat(Double(floor) * config.floorSpacing + config.bubbleHeight))
+        }
+        // Roket alevi ve adrenalin halesi de kesik kesik titrer.
+        let flicker = boilJitter(step: boilStep, index: 777, amount: 4)
+        let flame = CGMutablePath()
+        flame.addLines(between: [CGPoint(x: -9, y: 2), CGPoint(x: flicker, y: -34 - abs(flicker) * 3), CGPoint(x: 9, y: 2)])
+        flame.closeSubpath()
+        boostFlame.path = flame
+        adrenalineAura.setScale(boilStep % 2 == 0 ? 1 : 1.12)
         // Film makinesindeki hafif kare kayması ("gate weave") ve varsa sarsıntı.
         weave = CGPoint(x: boilJitter(step: boilStep, index: 900, amount: 0.9),
                         y: boilJitter(step: boilStep, index: 901, amount: 0.9))
@@ -198,10 +240,40 @@ final class TowerScene: SKScene {
         rightWall.scroll(cameraY: cameraY)
 
         updatePlatforms()
+        updateBubbles()
+
+        // Etkin baloncukların görünümü
+        let shield = sim.shieldRemaining
+        shieldRing.isHidden = shield <= 0 || (shield < 2 && Int(shield * 6) % 2 == 0)
+        adrenalineAura.isHidden = sim.adrenalineRemaining <= 0
+        boostFlame.isHidden = sim.boost == nil
+        slowTint.alpha = sim.slowRemaining > 0 ? 0.16 : 0
 
         let comboFraction = sim.combo.map { $0.timeLeft / config.comboWindow }
         hud.update(floor: sim.highestFloor, score: sim.score, comboFraction: comboFraction)
+        hud.updatePowerUps([.slowTime: sim.slowRemaining, .adrenaline: sim.adrenalineRemaining, .shield: sim.shieldRemaining])
         backgroundColor = Palette.sky(forHeight: sim.y)
+    }
+
+    /// Görünen katlardaki alınmamış baloncukları gösterir.
+    private func updateBubbles() {
+        let height = visibleHeight
+        let low = max(0, Int(((cameraY - height / 2) / config.floorSpacing).rounded(.down)) - 1)
+        let high = max(low, Int(((cameraY + height / 2) / config.floorSpacing).rounded(.up)) + 1)
+        for floor in Array(bubbleNodes.keys) where floor < low || floor > high {
+            bubbleNodes[floor]?.removeFromParent()
+            bubbleNodes[floor] = nil
+        }
+        for floor in low...high where bubbleNodes[floor] == nil && !sim.collectedBubbles.contains(floor) {
+            let platform = sim.platform(floor: floor)
+            guard let kind = platform.bubble else { continue }
+            let node = BubbleNode(kind: kind, radius: CGFloat(config.bubbleRadius))
+            let position = sim.bubblePosition(of: platform)
+            node.position = CGPoint(x: position.x, y: position.y)
+            node.zPosition = 8
+            world.addChild(node)
+            bubbleNodes[floor] = node
+        }
     }
 
     private func updatePlatforms() {
@@ -253,6 +325,28 @@ final class TowerScene: SKScene {
                 let x = side > 0 ? config.playMaxX : config.playMinX
                 spawnStars(at: CGPoint(x: x, y: sim.y + 24))
                 haptics.impact(.rigid)
+            case .wallKick(let side):
+                // Takla: duvardan uzaklaşan yöne doğru tam tur.
+                character.playFlip(towards: -side)
+                haptics.impact(.heavy)
+            case .powerUp(let kind):
+                for (floor, node) in bubbleNodes where sim.collectedBubbles.contains(floor) {
+                    node.pop(in: world)
+                    bubbleNodes[floor] = nil
+                }
+                showTitleCard(powerUpTitle(kind), big: kind == .boost)
+                haptics.notify(.success)
+                if kind == .boost { shake() }
+            case .boostFinished:
+                character.playLand()
+                spawnDust(at: CGPoint(x: sim.x, y: sim.y))
+                shake()
+            case .shieldSaved:
+                showTitleCard(String(localized: "card.shieldSaved"), big: false)
+                spawnStars(at: CGPoint(x: sim.x, y: sim.y))
+                haptics.impact(.heavy)
+            case .respawned:
+                break
             case .comboExtended(let jumps, let floors):
                 hud.showCombo(jumps: jumps, floors: floors)
             case .comboEnded(_, let floors, let points):
@@ -277,9 +371,97 @@ final class TowerScene: SKScene {
                 showTitleCard(String(localized: "card.burn"), big: true)
                 haptics.notify(.warning)
             case .died:
-                gameOver()
+                if sim.canRespawn {
+                    playRespawn()
+                } else {
+                    gameOver()
+                }
             }
         }
+    }
+
+    private func powerUpTitle(_ kind: PowerUp) -> String {
+        switch kind {
+        case .boost: return String(localized: "powerup.boost")
+        case .slowTime: return String(localized: "powerup.slowTime")
+        case .adrenaline: return String(localized: "powerup.adrenaline")
+        case .shield: return String(localized: "powerup.shield")
+        }
+    }
+
+    // MARK: Diriliş
+
+    /// 1930'lar çizgi filmi gibi: hayalet yukarı süzülür, "BİR ŞANS DAHA!" kartı, iris kapanır,
+    /// karakter kirişine geri döner, iris açılır.
+    private func playRespawn() {
+        isRespawning = true
+        touchRoles.removeAll()
+        controls.highlight([])
+        haptics.notify(.warning)
+        character.isHidden = true
+
+        let ghost = RubberHoseCharacter(style: .ghost)
+        ghost.position = character.position
+        ghost.zPosition = 40
+        world.addChild(ghost)
+        var floatUp: [SKAction] = []
+        for frame in 0..<14 {
+            let sway: CGFloat = frame % 4 < 2 ? 6 : -6
+            floatUp.append(.run { ghost.tick(step: frame) })
+            floatUp.append(.moveBy(x: sway, y: 12, duration: 0))
+            floatUp.append(.wait(forDuration: 1.0 / 12.0))
+        }
+        ghost.run(.sequence([.sequence(floatUp), .fadeOut(withDuration: 0.2), .removeFromParent()]))
+        showTitleCard(String(localized: "card.respawn"), big: true)
+
+        run(.sequence([
+            .wait(forDuration: 1.3),
+            .run { [weak self] in
+                self?.runIris(closing: true, center: self?.character.position ?? .zero) {
+                    self?.finishRespawn()
+                }
+            },
+        ]))
+    }
+
+    private func finishRespawn() {
+        _ = sim.respawn()
+        syncNodes()
+        cameraY = max(sim.y + visibleHeight * 0.1, visibleHeight / 2 - 40)
+        character.isHidden = false
+        character.playLand()
+        spawnStars(at: CGPoint(x: sim.x, y: sim.y + 30))
+        runIris(closing: false, center: CGPoint(x: sim.x, y: sim.y + 24)) { [weak self] in
+            self?.lastUpdate = 0
+            self?.accumulator = 0
+            self?.isRespawning = false
+        }
+    }
+
+    /// İris: karakterin etrafında daralan (ya da açılan) siyah daire, 12 fps.
+    private func runIris(closing: Bool, center worldPoint: CGPoint, completion: @escaping () -> Void) {
+        let iris = SKShapeNode()
+        iris.strokeColor = Palette.ink
+        iris.fillColor = .clear
+        iris.lineWidth = 4000
+        iris.zPosition = 2000
+        iris.position = cameraNode.convert(worldPoint + CGPoint(x: 0, y: 24), from: world)
+        cameraNode.addChild(iris)
+        let maxRadius = hypot(size.width, size.height)
+        let frames = 8
+        var actions: [SKAction] = []
+        for frame in 0...frames {
+            let progress = Double(frame) / Double(frames)
+            let radius = maxRadius * CGFloat(closing ? 1 - progress : progress)
+            let outer = radius + 2000
+            actions.append(.run {
+                iris.path = CGPath(ellipseIn: CGRect(x: -outer, y: -outer, width: outer * 2, height: outer * 2), transform: nil)
+            })
+            actions.append(.wait(forDuration: 1.0 / 12.0))
+        }
+        actions.append(.run(completion))
+        actions.append(.removeFromParent())
+        iris.run(.sequence(actions))
     }
 
     // MARK: Efektler

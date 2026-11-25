@@ -8,6 +8,36 @@
 "title.help" = "Nasıl oynanır";
 
 "controls.auto" = "OTO";
+"title.characters %lld" = "Karakterler · %lld kupa";
+
+"character.tipi" = "Tıpı";
+"character.fistik" = "Fıstık";
+"character.mirnav" = "Mırnav";
+"character.beyefendi" = "Beyefendi";
+"character.pervane" = "Pervane";
+
+"shop.title" = "Karakterler";
+"shop.wallet %lld" = "Harcanabilir kupa: %lld";
+"shop.hint" = "Her 100 katta kazandığın her kupa buraya eklenir. Kupalarla yeni karakter açarsın; gerçek parayla satın alma yoktur.";
+"shop.selected" = "SEÇİLİ";
+"shop.select" = "Seç";
+"shop.unlock %lld" = "Aç · %lld kupa";
+
+"powerup.boost" = "ROKET! +50 KAT";
+"powerup.slowTime" = "AĞIR ÇEKİM!";
+"powerup.adrenaline" = "ADRENALİN!";
+"powerup.shield" = "KALKAN!";
+"card.shieldSaved" = "KALKAN KURTARDI!";
+"card.respawn" = "BİR ŞANS DAHA!";
+
+"help.assist.title" = "Yardımcı el";
+"help.assist.body" = "Bir kirişin kenarını az farkla kaçırırsan oyun seni hafifçe kirişe çeker. Havadayken duvara hızla çarparsan karakterin takla atıp yükselir ve ulaşabileceği en yüksek kirişe doğru yönlendirilir; bununla kombo yapabilirsin.";
+"help.bubbles.title" = "Sürpriz baloncuklar";
+"help.bubbles.body" = "Bazı kirişlerin üstünde baloncuklar süzülür; içinden geçince alırsın. Roket seni 50 kat yukarı uçurur. Ağır çekim dünyayı 6 saniye yavaşlatır. Adrenalin 8 saniye daha hızlı koşturur ve daha yükseğe zıplatır. Kalkan 10 saniye boyunca yanan filmden korur. Etkin olanlar ve kalan süreleri ekranın üstünde görünür.";
+"help.respawn.title" = "Bir şans daha";
+"help.respawn.body" = "Her oyunda bir kez, yanan film seni yakalayınca bedava dirilirsin: en son bastığın kirişe dönersin, film geri çekilir ve 3 saniyelik kalkan alırsın. İkinci kez yakalanırsan oyun biter.";
+"help.characters.title" = "Karakterler";
+"help.characters.body" = "Kazandığın her kupa harcanabilir kupa olarak birikir. Ana ekrandaki Karakterler düğmesinden kupalarla dört yeni karakter açabilirsin: Fıstık (1), Mırnav (2), Beyefendi (3), Pervane (5). Karakterler yalnızca görünüştür, oynanışı değiştirmez.";
 
 "hud.floor %lld" = "KAT %lld";
 "hud.score %lld" = "%lld PUAN";
