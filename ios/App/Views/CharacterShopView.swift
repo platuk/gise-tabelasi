@@ -49,7 +49,7 @@ struct CharacterShopView: View {
         let isUnlocked = unlocked.contains(character)
         let isSelected = selected == character.rawValue && isUnlocked
         VStack(spacing: 8) {
-            SpriteView(scene: CharacterPreviewScene(character: character), options: [.allowsTransparency])
+            SpriteView(scene: CharacterPreviewScene(character: character, dances: isSelected), options: [.allowsTransparency])
                 .frame(width: 90, height: 100)
                 .opacity(isUnlocked ? 1 : 0.45)
             Text(character.name)
@@ -59,7 +59,10 @@ struct CharacterShopView: View {
                     .font(Theme.title(15))
                     .foregroundStyle(Theme.marquee)
             } else if isUnlocked {
-                Button("shop.select") { selected = character.rawValue }
+                Button("shop.select") {
+                    MenuFeedback.tap()
+                    selected = character.rawValue
+                }
                     .font(Theme.title(15))
                     .buttonStyle(.borderedProminent)
                     .tint(Theme.ink)
@@ -88,5 +91,6 @@ struct CharacterShopView: View {
         updated.insert(character)
         unlockedStorage = GameCharacter.store(updated)
         selected = character.rawValue
+        SoundEngine.shared.play(.unlock)
     }
 }

@@ -673,6 +673,97 @@ final class TowerTests: XCTestCase {
         XCTAssertTrue(sim.enemyShots.isEmpty)
     }
 
+    func testBossKindsCycleEveryChapter() {
+        XCTAssertEqual(BossKind.forNumber(1), .octopus)
+        XCTAssertEqual(BossKind.forNumber(2), .worm)
+        XCTAssertEqual(BossKind.forNumber(3), .bat)
+        XCTAssertEqual(BossKind.forNumber(4), .alien)
+        XCTAssertEqual(BossKind.forNumber(5), .robot)
+        XCTAssertEqual(BossKind.forNumber(6), .bulldog)
+        XCTAssertEqual(BossKind.forNumber(7), .octopus)
+        XCTAssertEqual(TowerSimulation(seed: 4, startFloor: 3000).boss?.kind, .bat)
+        // Her boss, her aşamada en az iki farklı saldırı yapar.
+        for kind in BossKind.allCases {
+            for phase in 1...3 {
+                XCTAssertGreaterThanOrEqual(Set(kind.attacks(phase: phase)).count, 2, "\(kind) aşama \(phase)")
+            }
+        }
+    }
+
+    /// Oyuncu boss'un altında kalır (mermi yolculuğu kadar ileriyi tahmin ederek): her tür yenilebilmeli.
+    func testEveryBossKindCanBeDefeated() {
+        for kind in BossKind.allCases {
+            var sim = TowerSimulation(seed: 4, startFloor: (kind.rawValue + 1) * 1000)
+            XCTAssertEqual(sim.boss?.kind, kind)
+            sim.shieldRemaining = 100_000
+            var defeated = false
+            var attacks = Set<BossAttack>()
+            for _ in 0..<(120 * 240) {
+                if let fight = sim.boss {
+                    let lead = (fight.y - sim.y) / sim.config.bulletSpeed
+                    let ahead = TowerSimulation.bossPosition(kind: kind, time: fight.time + lead,
+                                                             centerX: sim.config.worldWidth / 2,
+                                                             sway: sim.config.bossSway,
+                                                             baseY: Double(fight.arenaFloor) * sim.config.floorSpacing + sim.config.bossHeight)
+                    sim.x = ahead.0
+                }
+                for event in sim.step(dt: dt, input: TowerInput()) {
+                    if case .bossAttack(let attack) = event { attacks.insert(attack) }
+                    if case .bossDefeated = event { defeated = true }
+                }
+                if defeated { break }
+            }
+            XCTAssertTrue(defeated, "\(kind) yenilemedi")
+            XCTAssertGreaterThanOrEqual(attacks.count, 2, "\(kind) saldırıları: \(attacks)")
+        }
+    }
+
+    /// Işın, uyarıda işaretlenen sütuna düşer: oraya basan vurulur, kenara kaçan kurtulur.
+    func testLaserHitsOnlyTheMarkedColumn() {
+        func run(dodge: Double) -> Bool {
+            var sim = TowerSimulation(seed: 4, startFloor: 4000) // uzaylı: ilk saldırı ışın
+            sim.x = 120
+            sim.boss?.attackTimer = 0
+            var warned = false
+            var hit = false
+            for _ in 0..<(120 * 2) {
+                for event in sim.step(dt: dt, input: TowerInput()) {
+                    if case .bossAttackWarning(.laser) = event {
+                        warned = true
+                        XCTAssertEqual(sim.boss?.targetX ?? 0, 120, accuracy: 1)
+                        sim.x += dodge
+                    }
+                    if case .playerHit = event { hit = true }
+                }
+            }
+            XCTAssertTrue(warned)
+            return hit
+        }
+        XCTAssertTrue(run(dodge: 0))
+        XCTAssertFalse(run(dodge: 90))
+    }
+
+    func testBouncingShotsBounceAndExpire() {
+        var sim = TowerSimulation(seed: 4, startFloor: 5000) // robot: ilk saldırı seken cıvatalar
+        sim.shieldRemaining = 100_000
+        sim.boss?.attackTimer = 0
+        let arenaY = 5000 * sim.config.floorSpacing
+        var sawBounce = false
+        var everSpawned = false
+        for _ in 0..<(120 * 4) {
+            _ = sim.step(dt: dt, input: TowerInput())
+            for shot in sim.enemyShots where shot.kind == .bolt {
+                everSpawned = true
+                XCTAssertGreaterThanOrEqual(shot.y, arenaY + shot.radius - 1)
+                if shot.vy > 0 && shot.y < arenaY + 40 { sawBounce = true }
+            }
+        }
+        XCTAssertTrue(everSpawned)
+        XCTAssertTrue(sawBounce)
+        for _ in 0..<(120 * 9) { _ = sim.step(dt: dt, input: TowerInput()) }
+        XCTAssertFalse(sim.enemyShots.contains { $0.kind == .bolt && $0.age > 8.1 })
+    }
+
     func testBossCanBeDefeatedAndClimbingResumes() {
         var sim = TowerSimulation(seed: 4, startFloor: 1000)
         sim.shieldRemaining = 10_000

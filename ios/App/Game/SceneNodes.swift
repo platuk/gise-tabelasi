@@ -301,7 +301,6 @@ final class HUD: SKNode {
             addChild(slot)
             powerUpSlots[kind] = (slot, label)
         }
-        bossName.text = String(localized: "boss.name")
         bossBarBack.path = CGPath(roundedRect: CGRect(x: -bossBarWidth / 2, y: -7, width: bossBarWidth, height: 14),
                                   cornerWidth: 6, cornerHeight: 6, transform: nil)
         bossBarBack.fillColor = Palette.cream
@@ -327,7 +326,11 @@ final class HUD: SKNode {
         hideCombo()
     }
 
-    func showBoss(_ visible: Bool) {
+    func showBoss(_ visible: Bool, name: String, color: SKColor) {
+        if visible {
+            bossName.text = name
+            bossBar.fillColor = color
+        }
         bossPanel.isHidden = !visible
         for heart in hearts { heart.isHidden = !visible }
     }

@@ -38,7 +38,14 @@ final class TowerScene: SKScene {
     /// Diriliş gösterisi sürerken oyun durur.
     private var isRespawning = false
     private let worldBackground = CartoonWorldBackground()
-    private var octopus: OctopusNode?
+    private var bossNode: BossNode?
+    /// Işın ve fışkırma uyarısında hedef işareti (arenada).
+    private let targetMarker = SKShapeNode()
+    private let sound = SoundEngine.shared
+    /// Boss provası: ödül ve kayıt yok; dövüş bitince oyun biter.
+    let practice: Bool
+    private(set) var gamePaused = false
+    var isOver: Bool { gameOverSent }
     private var projectileNodes: [Int: ProjectileNode] = [:]
     private var bossFlashTicks = 0
     private let leftWall = WallNode()
@@ -67,9 +74,10 @@ final class TowerScene: SKScene {
     private var gameOverSent = false
     private let haptics = Haptics()
 
-    init(seed: UInt64, startFloor: Int, bossAlreadyDefeated: Bool, character: GameCharacter) {
+    init(seed: UInt64, startFloor: Int, bossAlreadyDefeated: Bool, character: GameCharacter, practice: Bool = false) {
         let config = TowerConfig()
         self.config = config
+        self.practice = practice
         self.characterStyle = character.style
         self.character = RubberHoseCharacter(style: character.style)
         self.sim = TowerSimulation(config: config, seed: seed, startFloor: startFloor, bossAlreadyDefeated: bossAlreadyDefeated)
@@ -125,27 +133,53 @@ final class TowerScene: SKScene {
             // Canlı çizgi film dünyası: her şeyin arkasında, kamera alanında.
             worldBackground.zPosition = -1000
             cameraNode.addChild(worldBackground)
+            targetMarker.zPosition = 3
+            targetMarker.lineWidth = 3
+            world.addChild(targetMarker)
         }
         layoutScene()
         syncNodes()
         if !introShown {
             introShown = true
+            sound.start()
+            sound.setPaused(false)
+            sound.setTempo(config.pace(forFloor: sim.highestFloor))
+            sound.setIntensity(2)
             if sim.boss != nil {
                 showBossIntro()
             } else {
+                sound.setMood(.climb)
                 showTitleCard(chapterTitle(forFloor: sim.startFloor), big: true)
             }
         }
     }
 
     private func showBossIntro() {
-        let name = String(localized: "boss.name")
+        let kind = sim.boss?.kind ?? .octopus
+        let name = BossNode.displayName(kind)
         showTitleCard(String(localized: "card.bossIntro \(name)"), big: true)
         showTitleCard(String(localized: "card.bossJump"), big: false)
-        hud.showBoss(true)
+        hud.showBoss(true, name: name, color: BossNode.barColor(kind))
         controls.showSwipeHint(true)
         haptics.notify(.warning)
+        sound.setMood(.boss)
+        sound.play(.bossIntro)
         shake()
+    }
+
+    // MARK: Duraklatma
+
+    /// Duraklatınca dünya donar, müzik kısılır; devam edince zaman kaldığı yerden akar.
+    func setPaused(_ paused: Bool) {
+        guard paused != gamePaused, !gameOverSent else { return }
+        gamePaused = paused
+        isPaused = paused
+        touchRoles.removeAll()
+        swipeOrigins.removeAll()
+        controls.highlight([])
+        lastUpdate = 0
+        accumulator = 0
+        sound.setPaused(paused)
     }
 
     override func didChangeSize(_ oldSize: CGSize) {
@@ -167,6 +201,7 @@ final class TowerScene: SKScene {
         filmOverlay?.removeFromParent()
         let film = FilmOverlay(size: size)
         film.zPosition = 1000
+        film.isHidden = !GameSettings.filmEffects
         cameraNode.addChild(film)
         filmOverlay = film
         slowTint.size = size
@@ -189,6 +224,7 @@ final class TowerScene: SKScene {
     // MARK: Döngü
 
     override func update(_ currentTime: TimeInterval) {
+        guard !gamePaused else { return }
         let frameDt = lastUpdate == 0 ? 0 : min(currentTime - lastUpdate, 0.1)
         lastUpdate = currentTime
 
@@ -217,7 +253,9 @@ final class TowerScene: SKScene {
     }
 
     private func onBoilTick() {
+        character.isScared = sim.burnActive && sim.boss == nil && sim.y - sim.burnY < 170
         character.tick(step: boilStep)
+        drawTargetMarker()
         if sim.burnActive {
             burn.redraw(step: boilStep)
         }
@@ -233,7 +271,7 @@ final class TowerScene: SKScene {
         boostFlame.path = flame
         adrenalineAura.setScale(boilStep % 2 == 0 ? 1 : 1.12)
         if let fight = sim.boss {
-            octopus?.tick(step: boilStep, telegraph: fight.telegraph, phase: fight.phase, flash: bossFlashTicks > 0)
+            bossNode?.tick(step: boilStep, telegraph: fight.telegraph, phase: fight.phase, flash: bossFlashTicks > 0)
         }
         bossFlashTicks = max(0, bossFlashTicks - 1)
         for node in projectileNodes.values { node.tick(step: boilStep) }
@@ -299,13 +337,14 @@ final class TowerScene: SKScene {
             }
             return
         }
-        if octopus == nil {
-            let node = OctopusNode()
+        if bossNode == nil {
+            let node = BossNode.make(fight.kind)
             node.zPosition = 15
+            node.position = CGPoint(x: fight.x, y: fight.y)
             world.addChild(node)
-            octopus = node
+            bossNode = node
         }
-        octopus?.position = CGPoint(x: fight.x, y: fight.y)
+        bossNode?.position = CGPoint(x: fight.x, y: fight.y)
         hud.updateBoss(hp: fight.hp, maxHP: fight.maxHP, playerHP: sim.playerHP)
 
         var alive = Set<Int>()
@@ -315,10 +354,11 @@ final class TowerScene: SKScene {
             if let existing = projectileNodes[shot.id] {
                 node = existing
             } else {
-                node = ProjectileNode(kind: shot.kind, radius: CGFloat(shot.radius))
+                node = ProjectileNode(kind: shot.kind, radius: CGFloat(shot.radius), boss: fight.kind)
                 node.zPosition = shot.kind == .bullet ? 12 : 16
                 world.addChild(node)
                 projectileNodes[shot.id] = node
+                if shot.kind == .bullet { sound.play(.playerShot) }
             }
             node.position = CGPoint(x: shot.x, y: shot.y)
             if shot.kind == .wave { node.xScale = shot.vx < 0 ? -1 : 1 }
@@ -327,6 +367,39 @@ final class TowerScene: SKScene {
             projectileNodes[id]?.removeFromParent()
             projectileNodes[id] = nil
         }
+    }
+
+    /// Işın: işaretli sütunda kesikli, yanıp sönen çizgiler. Fışkırma: zeminde çatlak ve kabarcıklar.
+    private func drawTargetMarker() {
+        guard let fight = sim.boss, let attack = fight.telegraph, attack == .laser || attack == .geyser else {
+            targetMarker.path = nil
+            return
+        }
+        let x = CGFloat(fight.targetX)
+        let floorY = CGFloat(Double(fight.arenaFloor) * config.floorSpacing)
+        let path = CGMutablePath()
+        if attack == .laser {
+            let top = CGFloat(fight.y) - 30
+            var y = floorY
+            while y < top {
+                for side in [CGFloat(-15), 15] {
+                    path.move(to: CGPoint(x: x + side, y: y))
+                    path.addLine(to: CGPoint(x: x + side, y: min(top, y + 16)))
+                }
+                y += 30
+            }
+            targetMarker.strokeColor = boilStep % 2 == 0 ? Palette.flame : Palette.flameCore
+            targetMarker.fillColor = .clear
+        } else {
+            path.addEllipse(in: CGRect(x: x - 26, y: floorY - 5, width: 52, height: 10))
+            let rise = CGFloat(boilStep % 4) * 7
+            for dx in [CGFloat(-12), 4, 14] {
+                path.addEllipse(in: CGRect(x: x + dx - 4, y: floorY + 8 + rise + dx * 0.3, width: 8, height: 8))
+            }
+            targetMarker.strokeColor = Palette.ink
+            targetMarker.fillColor = SKColor(red: 0.48, green: 0.32, blue: 0.18, alpha: 1)
+        }
+        targetMarker.path = path
     }
 
     /// Görünen katlardaki alınmamış baloncukları gösterir.
@@ -398,18 +471,22 @@ final class TowerScene: SKScene {
             case .jumped(let power):
                 character.playJump(power: power)
                 haptics.impact(.light)
+                sound.play(.jump(power: power))
             case .landed(_, let climbed):
                 character.playLand()
                 spawnDust(at: CGPoint(x: sim.x, y: sim.y))
                 haptics.impact(climbed >= 2 ? .medium : .soft)
+                sound.play(.land(big: climbed >= 2))
             case .wallBounce(let side):
                 let x = side > 0 ? config.playMaxX : config.playMinX
                 spawnStars(at: CGPoint(x: x, y: sim.y + 24))
                 haptics.impact(.rigid)
+                sound.play(.wallBounce)
             case .wallKick(let side):
                 // Takla: duvardan uzaklaşan yöne doğru tam tur.
                 character.playFlip(towards: -side)
                 haptics.impact(.heavy)
+                sound.play(.wallKick)
             case .powerUp(let kind):
                 for (floor, node) in bubbleNodes where sim.collectedBubbles.contains(floor) {
                     node.pop(in: world)
@@ -417,53 +494,83 @@ final class TowerScene: SKScene {
                 }
                 showTitleCard(powerUpTitle(kind), big: kind == .boost)
                 haptics.notify(.success)
+                sound.play(.bubble)
+                sound.play(kind == .boost ? .boost : .powerUp)
                 if kind == .boost { shake() }
             case .boostFinished:
                 character.playLand()
                 spawnDust(at: CGPoint(x: sim.x, y: sim.y))
+                sound.play(.land(big: true))
+                sound.setTempo(config.pace(forFloor: sim.highestFloor))
                 shake()
             case .shieldSaved:
                 showTitleCard(String(localized: "card.shieldSaved"), big: false)
                 spawnStars(at: CGPoint(x: sim.x, y: sim.y))
                 haptics.impact(.heavy)
+                sound.play(.shieldSaved)
             case .respawned:
                 break
             case .bossStarted:
                 showBossIntro()
             case .bossAttackWarning:
                 haptics.impact(.light)
+                sound.play(.bossWarning)
             case .bossAttack(let attack):
-                if attack == .wave || attack == .rain { shake() }
+                sound.play(.bossAttack)
+                if attack == .wave || attack == .rain || attack == .laser { shake() }
             case .bossHit:
                 bossFlashTicks = 1
+                sound.play(.bossHit)
             case .playerHit:
                 haptics.notify(.error)
                 shake()
                 spawnStars(at: CGPoint(x: sim.x, y: sim.y + 30))
+                character.playHurt()
+                sound.play(.playerHit)
             case .bossDefeated(_, let floor):
-                if let node = octopus {
+                if let node = bossNode {
                     node.playDefeat(in: world)
-                    octopus = nil
+                    bossNode = nil
                 }
-                hud.showBoss(false)
+                targetMarker.path = nil
+                hud.showBoss(false, name: "", color: Palette.ink)
                 controls.showSwipeHint(false)
+                character.playCelebrate()
+                sound.play(.bossDefeated)
                 showTitleCard(String(localized: "card.bossDefeated"), big: true)
-                showTitleCard(String(localized: "card.bossReward \(bossRewardCups)"), big: false)
-                showTitleCard(chapterTitle(forFloor: floor + 1), big: true)
                 haptics.notify(.success)
                 shake()
-                onBossDefeated?(floor)
+                if practice {
+                    // Prova bitti: ödül yok, kısa bir zafer gösterisinden sonra perde iner.
+                    sound.setMood(.off)
+                    run(.sequence([.wait(forDuration: 2.6), .run { [weak self] in self?.gameOver(victory: true) }]))
+                } else {
+                    sound.setMood(.climb)
+                    showTitleCard(String(localized: "card.bossReward \(bossRewardCups)"), big: false)
+                    showTitleCard(chapterTitle(forFloor: floor + 1), big: true)
+                    onBossDefeated?(floor)
+                }
             case .comboExtended(let jumps, let floors):
                 hud.showCombo(jumps: jumps, floors: floors)
+                sound.play(.comboUp(level: jumps))
+                // Büyük kombo: müziğe banjo ve trompet katılır.
+                sound.setIntensity(jumps >= 3 || floors >= 10 ? 3 : 2)
             case .comboEnded(_, let floors, let points):
                 hud.hideCombo()
+                sound.setIntensity(2)
                 if points > 0 {
                     showTitleCard(String(localized: "card.combo \(floors)"), big: floors >= 10)
                     haptics.notify(.success)
-                    if floors >= 10 { shake() }
+                    sound.play(.comboCash)
+                    if floors >= 10 {
+                        shake()
+                        character.playCelebrate()
+                    }
                 }
             case .newMilestone(let floor):
                 showTitleCard(String(localized: "card.milestone \(floor)"), big: false)
+                sound.play(.milestone)
+                sound.setTempo(config.pace(forFloor: sim.highestFloor))
             case .trophyEarned(let floor):
                 if let tier = TrophyTier(checkpointFloor: floor) {
                     showTitleCard(String(localized: "card.trophy \(tier.name)"), big: true)
@@ -474,11 +581,14 @@ final class TowerScene: SKScene {
                     showTitleCard(chapterTitle(forFloor: floor), big: true)
                 }
                 haptics.notify(.success)
+                character.playCelebrate()
+                sound.play(.trophy)
                 shake()
-                onCheckpoint?(floor)
+                if !practice { onCheckpoint?(floor) }
             case .burnStarted:
                 showTitleCard(String(localized: "card.burn"), big: true)
                 haptics.notify(.warning)
+                sound.play(.burnStart)
             case .died:
                 if sim.canRespawn {
                     playRespawn()
@@ -511,6 +621,7 @@ final class TowerScene: SKScene {
         touchRoles.removeAll()
         controls.highlight([])
         haptics.notify(.warning)
+        sound.play(.respawn)
         character.isHidden = true
 
         let ghost = RubberHoseCharacter(style: .ghost)
@@ -688,6 +799,7 @@ final class TowerScene: SKScene {
     }
 
     private func shake() {
+        guard GameSettings.screenShake else { return }
         shakeOffsets = [CGPoint(x: 6, y: -4), CGPoint(x: -5, y: 3), CGPoint(x: 3, y: -2), CGPoint(x: -1, y: 1)]
     }
 
@@ -706,12 +818,14 @@ final class TowerScene: SKScene {
     // MARK: Oyun sonu
 
     /// Klasik "iris" kapanışı: karakterin etrafında daralan siyah daire, sonra sonuç ekranı.
-    private func gameOver() {
+    private func gameOver(victory: Bool = false) {
         guard !gameOverSent else { return }
         gameOverSent = true
         touchRoles.removeAll()
         controls.highlight([])
-        haptics.notify(.error)
+        haptics.notify(victory ? .success : .error)
+        sound.setMood(.off)
+        if !victory { sound.play(.died) }
 
         let iris = SKShapeNode()
         iris.strokeColor = Palette.ink
@@ -741,7 +855,7 @@ final class TowerScene: SKScene {
     // MARK: Dokunma
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard !sim.isDead else { return }
+        guard !sim.isDead, !gamePaused else { return }
         for touch in touches {
             let point = touch.location(in: cameraNode)
             let key = ObjectIdentifier(touch)
@@ -794,10 +908,12 @@ final class TowerScene: SKScene {
 @MainActor
 final class Haptics {
     func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        guard GameSettings.haptics else { return }
         UIImpactFeedbackGenerator(style: style).impactOccurred()
     }
 
     func notify(_ type: UINotificationFeedbackGenerator.FeedbackType) {
+        guard GameSettings.haptics else { return }
         UINotificationFeedbackGenerator().notificationOccurred(type)
     }
 }

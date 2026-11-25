@@ -25,6 +25,20 @@
   Zafer: +500×n puan, +3 kupa, sonraki bölüm. Dövüşte ölünürse sonraki oyun dövüşten başlar.
 - Arka plan: kodla "suluboya" boyanan katmanlar (gökyüzü bantları, güneş/ay/yıldızlar, şehir, iki bulut katmanı, kuşlar, zeplin).
 
+## Boss sırası, ses, menü (sürüm 10)
+
+- Boss'lar sırayla (6'lı döngü, can artarak): ahtapot (yelpaze, nişanlı, dalga, yağmur), solucan (fışkırma, çamur), yarasa (halka, yağmur),
+  uzaylı (ışın, halka), robot (seken cıvatalar, ışın), bulldog (seken kemikler, fışkırma, dalga). Işın ve fışkırma oyuncunun yerini
+  hedefler; uyarı süresince zeminde işaretlenir, 1.25 kat uzun uyarı. Her boss'un kendine özgü hareket yolu vardır.
+- Ses: dosya yok, her şey kodla sentezlenir (AVAudioSourceNode). Müzik: tuba, stride piyano, fırçalı davul, klarnet;
+  büyük komboda banjo ve trompet; boss'ta minör tango; menüde sakin sürüm. Gramofon süzgeci ve cızırtı. Tempo oyun hızını izler.
+- Karakter: komi şapkalı Tıpı (önceki siyah gövde + turta göz + beyaz eldiven ünlü bir karaktere fazla benziyordu),
+  her karaktere ayrı oran, manşetli iri eldiven, iri ayakkabı, ifade (kararlı, korku, sevinç, acı), göz kırpma,
+  8 çizimlik koşu döngüsü, kuyruk ve kulaklarda takip hareketi, hız çizgileri.
+- Menü: perde açılan sinema salonu, sırayla yanan tabela ampulleri, dans eden karakter; Oyna/Devam, Karakterler,
+  Boss galerisi (ödülsüz prova), Ayarlar (müzik, efekt, titreşim, sarsıntı, film efektleri, sıfırlama), Nasıl oynanır.
+- Ara menüsü: Devam (3-2-1 film geri sayımı), Yeniden başla, Ayarlar, Ana ekran. Arka plana geçince kendiliğinden durur.
+
 ## Önceki çalışma adı: Gökdelen Swing
 
 1930'ların lastik hortum çizgi filmleri tarzında, sonsuz yukarı tırmanma oyunu. İlham: Icy Tower'ın hız-zıplama-kombo çekirdeği; görsel dil: dönemin çizgi filmleri. Hiçbir oyunun karakteri, logosu, menüsü ya da adı kullanılmaz.

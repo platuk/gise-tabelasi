@@ -3,26 +3,48 @@ import SpriteKit
 /// Karakterin baş süsü.
 enum Accessory {
     case none
+    /// Asansörcü/komi şapkası (Tıpı).
+    case bellhop
     case dogEars
     case catEars
     case topHat
     case propeller
 }
 
-/// Bir karakterin renkleri ve süsü. Hepsi aynı lastik hortum iskeletini kullanır.
+/// Kuyruk: arkadan sallanır, hareketin gerisinden gelir (follow-through).
+enum Tail {
+    case none
+    /// Uzun, kıvrık.
+    case cat
+    /// Kısa, sevinince sallanır.
+    case dog
+}
+
+/// Bir karakterin renkleri, süsü ve oranları. Hepsi aynı lastik hortum iskeletini kullanır;
+/// oranlar her birine ayrı bir siluet verir (tombul köpek, ince kedi, uzun beyefendi, iri kafalı çocuk).
 struct CharacterStyle {
     var body: SKColor
+    var head: SKColor
     var face: SKColor
     var shoes: SKColor
     var gloves: SKColor
     var accent: SKColor
     var accessory: Accessory
+    var tail: Tail = .none
+    var bodyWidth: CGFloat = 22
+    var bodyHeight: CGFloat = 21
+    var headScale: CGFloat = 1
+    /// Gövdede iki düğme (ceket).
+    var buttons = false
+    /// Boyunda papyon.
+    var bowTie = false
     var alpha: CGFloat = 1
 
     /// Dirilişte yukarı süzülen hayalet.
     static let ghost = CharacterStyle(
-        body: SKColor(white: 0.97, alpha: 1), face: .white, shoes: SKColor(white: 0.9, alpha: 1),
-        gloves: .white, accent: SKColor(white: 0.9, alpha: 1), accessory: .none, alpha: 0.75
+        body: SKColor(white: 0.97, alpha: 1), head: SKColor(white: 0.97, alpha: 1), face: .white,
+        shoes: SKColor(white: 0.9, alpha: 1), gloves: .white, accent: SKColor(white: 0.9, alpha: 1),
+        accessory: .none, alpha: 0.75
     )
 }
 
@@ -59,21 +81,31 @@ enum GameCharacter: Int, CaseIterable, Identifiable {
 
     var style: CharacterStyle {
         let ink = Palette.ink
+        let skin = SKColor(red: 0.99, green: 0.86, blue: 0.70, alpha: 1)
         switch self {
         case .tipi:
-            return CharacterStyle(body: ink, face: Palette.cream, shoes: ink, gloves: .white, accent: ink, accessory: .none)
+            // Gökdelenin komisi: kırmızı ceket, yuvarlak şapka, pirinç düğmeler.
+            return CharacterStyle(body: SKColor(red: 0.78, green: 0.17, blue: 0.14, alpha: 1), head: skin, face: skin,
+                                  shoes: ink, gloves: .white, accent: SKColor(red: 0.78, green: 0.17, blue: 0.14, alpha: 1),
+                                  accessory: .bellhop, buttons: true)
         case .fistik:
-            return CharacterStyle(body: SKColor(red: 0.50, green: 0.31, blue: 0.19, alpha: 1), face: Palette.cream, shoes: ink,
-                                  gloves: .white, accent: SKColor(red: 0.30, green: 0.18, blue: 0.11, alpha: 1), accessory: .dogEars)
+            let brown = SKColor(red: 0.62, green: 0.40, blue: 0.24, alpha: 1)
+            return CharacterStyle(body: brown, head: brown, face: Palette.cream, shoes: ink, gloves: .white,
+                                  accent: SKColor(red: 0.33, green: 0.20, blue: 0.12, alpha: 1), accessory: .dogEars,
+                                  tail: .dog, bodyWidth: 26, bodyHeight: 22, headScale: 1.04)
         case .mirnav:
-            return CharacterStyle(body: SKColor(red: 0.40, green: 0.40, blue: 0.44, alpha: 1), face: Palette.cream, shoes: ink,
-                                  gloves: .white, accent: SKColor(red: 0.40, green: 0.40, blue: 0.44, alpha: 1), accessory: .catEars)
+            let grey = SKColor(red: 0.47, green: 0.47, blue: 0.53, alpha: 1)
+            return CharacterStyle(body: grey, head: grey, face: Palette.cream, shoes: ink, gloves: .white,
+                                  accent: grey, accessory: .catEars, tail: .cat, bodyWidth: 18, bodyHeight: 21)
         case .beyefendi:
-            return CharacterStyle(body: SKColor(red: 0.18, green: 0.20, blue: 0.36, alpha: 1), face: Palette.cream, shoes: ink,
-                                  gloves: .white, accent: SKColor(red: 0.72, green: 0.14, blue: 0.12, alpha: 1), accessory: .topHat)
+            return CharacterStyle(body: SKColor(red: 0.18, green: 0.20, blue: 0.36, alpha: 1), head: skin, face: skin,
+                                  shoes: ink, gloves: .white, accent: SKColor(red: 0.72, green: 0.14, blue: 0.12, alpha: 1),
+                                  accessory: .topHat, bodyWidth: 20, bodyHeight: 24, headScale: 0.95, buttons: true, bowTie: true)
         case .pervane:
-            return CharacterStyle(body: SKColor(red: 0.20, green: 0.42, blue: 0.30, alpha: 1), face: Palette.cream, shoes: ink,
-                                  gloves: .white, accent: SKColor(red: 0.85, green: 0.20, blue: 0.16, alpha: 1), accessory: .propeller)
+            return CharacterStyle(body: SKColor(red: 0.20, green: 0.50, blue: 0.34, alpha: 1), head: skin, face: skin,
+                                  shoes: SKColor(red: 0.45, green: 0.22, blue: 0.12, alpha: 1), gloves: .white,
+                                  accent: SKColor(red: 0.88, green: 0.22, blue: 0.16, alpha: 1), accessory: .propeller,
+                                  bodyWidth: 21, bodyHeight: 19, headScale: 1.14)
         }
     }
 
