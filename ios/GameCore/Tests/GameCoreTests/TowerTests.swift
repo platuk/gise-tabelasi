@@ -134,7 +134,8 @@ final class TowerTests: XCTestCase {
         sim.x = sim.platform(floor: 2).centerX
         sim.land(onFloor: 2)
         var ended = false
-        for _ in 0..<Int((sim.config.comboWindow + 0.2) / dt) {
+        // Kombo süresi dünya zamanıyla akar; oyun sakin tempoda başladığı için gerçek süre biraz daha uzun.
+        for _ in 0..<Int((sim.config.comboWindow / sim.config.paceStart + 0.2) / dt) {
             if sim.step(dt: dt, input: TowerInput()).contains(.comboEnded(jumps: 1, floors: 2, points: 0)) {
                 ended = true
                 break
@@ -244,13 +245,13 @@ final class TowerTests: XCTestCase {
         slippery.x = slippery.platform(floor: 2250).centerX
         slippery.land(onFloor: 2250)
         slippery.vx = 200
-        for _ in 0..<15 {
+        for _ in 0..<20 {
             _ = steel.step(dt: dt, input: TowerInput())
             _ = slippery.step(dt: dt, input: TowerInput())
         }
         XCTAssertEqual(steel.vx, 0)
         // Duvara çarpıp sekmiş olabilir; önemli olan hızın büyük ölçüde korunması.
-        XCTAssertGreaterThan(abs(slippery.vx), 120)
+        XCTAssertGreaterThan(abs(slippery.vx), 100)
     }
 
     func testSlidingGirderCarriesPlayer() {
@@ -327,6 +328,29 @@ final class TowerTests: XCTestCase {
         XCTAssertTrue(sim.wallKickGuiding)
     }
 
+    func testWallKicksAreLimitedUntilLanding() {
+        var sim = TowerSimulation(seed: 1)
+        func slamRightWall() -> Bool {
+            sim.isGrounded = false
+            sim.y = 430 // iki kirişin arası: bu adımda inilmez
+            sim.vy = -50
+            sim.x = sim.config.playMaxX - sim.config.playerWidth / 2 - 1
+            sim.vx = sim.config.maxRunSpeed
+            return sim.step(dt: dt, input: TowerInput(direction: 1)).contains(.wallKick(side: 1))
+        }
+        var kicks = 0
+        for _ in 0..<(sim.config.maxWallKicks + 5) where slamRightWall() { kicks += 1 }
+        XCTAssertEqual(kicks, sim.config.maxWallKicks)
+        XCTAssertEqual(sim.wallKicksSinceLanding, sim.config.maxWallKicks)
+        // 11. çarpış: duvar yalnızca seker, yükseltmez.
+        XCTAssertFalse(slamRightWall())
+        XCTAssertLessThan(sim.vy, 0)
+        // Bir kirişe basınca sayaç sıfırlanır.
+        sim.land(onFloor: 4)
+        XCTAssertEqual(sim.wallKicksSinceLanding, 0)
+        XCTAssertTrue(slamRightWall())
+    }
+
     func testSlowWallTouchIsNotAKick() {
         // Yardımcı el kapalı: yalnızca duvar davranışı ölçülsün (yoksa oyuncuyu duvardan önce kirişe çekebilir).
         var config = TowerConfig()
@@ -382,7 +406,7 @@ final class TowerTests: XCTestCase {
         let from = sim.boost?.targetFloor ?? -1
         XCTAssertNotNil(sim.boost)
         var finished: Int?
-        for _ in 0..<Int(sim.config.boostDuration / dt) + 10 {
+        for _ in 0..<Int(sim.config.boostDuration / sim.config.paceStart / dt) + 10 {
             for event in sim.step(dt: dt, input: TowerInput()) {
                 if case .boostFinished(let floor) = event { finished = floor }
             }
@@ -405,8 +429,32 @@ final class TowerTests: XCTestCase {
         var sim = TowerSimulation(seed: 1)
         sim.apply(.slowTime)
         for _ in 0..<120 { _ = sim.step(dt: dt, input: TowerInput()) }
-        XCTAssertEqual(sim.elapsed, 1.0 * sim.config.slowFactor, accuracy: 0.01)
+        XCTAssertEqual(sim.elapsed, 1.0 * sim.config.slowFactor * sim.config.pace(forFloor: 0), accuracy: 0.01)
         XCTAssertEqual(sim.slowRemaining, sim.config.slowDuration - 1, accuracy: 0.01)
+    }
+
+    // MARK: Tempo
+
+    func testPaceStartsCalmAndRisesWithFloors() {
+        let config = TowerConfig()
+        XCTAssertEqual(config.pace(forFloor: 0), config.paceStart, accuracy: 1e-9)
+        XCTAssertLessThan(config.pace(forFloor: 0), 1)
+        XCTAssertEqual(config.pace(forFloor: 800), 1, accuracy: 1e-9)
+        XCTAssertGreaterThan(config.pace(forFloor: 2000), config.pace(forFloor: 1000))
+        XCTAssertEqual(config.pace(forFloor: 100_000), config.paceMax, accuracy: 1e-9)
+        // Yanan filmin azami hızı her bölümde artar, ama bir tavanı vardır.
+        XCTAssertLessThan(config.burnSpeedLimit(forFloor: 10), config.burnSpeedLimit(forFloor: 1500))
+        XCTAssertEqual(config.burnSpeedLimit(forFloor: 100_000), config.burnMaxSpeedCap, accuracy: 1e-9)
+
+        // Aynı gerçek sürede, yukarıdaki katlarda dünya daha hızlı akar.
+        var low = TowerSimulation(seed: 1)
+        var high = TowerSimulation(seed: 1, startFloor: 1900)
+        for _ in 0..<120 {
+            _ = low.step(dt: dt, input: TowerInput())
+            _ = high.step(dt: dt, input: TowerInput())
+        }
+        XCTAssertEqual(low.elapsed, config.paceStart, accuracy: 0.01)
+        XCTAssertGreaterThan(high.elapsed, 1.0)
     }
 
     func testAdrenalineRaisesTopSpeed() {

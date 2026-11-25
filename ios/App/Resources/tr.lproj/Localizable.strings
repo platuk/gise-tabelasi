@@ -7,7 +7,8 @@
 "title.best %lld %lld" = "En iyi: %1$lld puan · %2$lld. kat";
 "title.help" = "Nasıl oynanır";
 
-"controls.auto" = "OTO";
+"controls.swipeJump" = "KAYDIR: ZIPLA";
+"card.bossJump" = "ZIPLAMAK İÇİN YUKARI KAYDIR!";
 "title.characters %lld" = "Karakterler · %lld kupa";
 
 "character.tipi" = "Tıpı";
@@ -31,7 +32,7 @@
 "card.respawn" = "BİR ŞANS DAHA!";
 
 "help.assist.title" = "Yardımcı el";
-"help.assist.body" = "Bir kirişin kenarını az farkla kaçırırsan oyun seni hafifçe kirişe çeker. Havadayken duvara hızla çarparsan karakterin takla atıp yükselir ve ulaşabileceği en yüksek kirişe doğru yönlendirilir; bununla kombo yapabilirsin.";
+"help.assist.body" = "Bir kirişin kenarını az farkla kaçırırsan oyun seni hafifçe kirişe çeker. Havadayken duvara hızla çarparsan karakterin takla atıp yükselir ve ulaşabileceği en yüksek kirişe doğru yönlendirilir; bununla kombo yapabilirsin. Bir kirişe basmadan en fazla 10 takla atılır; sonra duvar yalnızca seker. Kirişe basınca hak yenilenir.";
 "help.bubbles.title" = "Sürpriz baloncuklar";
 "help.bubbles.body" = "Bazı kirişlerin üstünde baloncuklar süzülür; içinden geçince alırsın. Roket seni 50 kat yukarı uçurur. Ağır çekim dünyayı 6 saniye yavaşlatır. Adrenalin 8 saniye daha hızlı koşturur ve daha yükseğe zıplatır. Kalkan 10 saniye boyunca yanan filmden korur. Etkin olanlar ve kalan süreleri ekranın üstünde görünür.";
 "help.respawn.title" = "Bir şans daha";
@@ -74,8 +75,8 @@
 "help.how.body" = "İnşaatı süren bir gökdelende kirişten kirişe zıplayarak olabildiğince yükseğe tırman. Kirişlerin altından geçebilir, üstlerine basabilirsin. Yükseldikçe kirişler daralır.";
 "help.controls.title" = "Kontroller";
 "help.controls.body" = "Ekranın sol yarısına basılı tutunca sola, sağ yarısına basılı tutunca sağa koşarsın. Ne kadar hızlı koşarsan o kadar yükseğe zıplarsın. Duvara çarparsan hızını koruyarak geri seker, ters yöne uçarsın.";
-"help.auto.title" = "Zıplama ve OTO";
-"help.auto.body" = "Sağ üstteki OTO düğmesi otomatik zıplamayı açıp kapatır ve başlangıçta açıktır. Açıkken karakter yere her değdiğinde kendiliğinden zıplar; sen yalnızca yönü verirsin. Kapalıyken ekrana bastığın parmağını yukarı kaydırarak zıplarsın. Ayar hatırlanır.";
+"help.auto.title" = "Zıplama";
+"help.auto.body" = "Tırmanırken karakterin yere her değdiğinde kendiliğinden zıplar; sen yalnızca yönü verirsin. Boss dövüşü ayrı bir moddur: orada otomatik zıplama yoktur, ekrana bastığın parmağını yukarı kaydırarak zıplarsın. Dövüş bitince otomatik zıplama geri gelir.";
 "help.trophy.title" = "Kupalar ve kayıt noktası";
 "help.trophy.body" = "Her 100 katta bir kupa kazanırsın: Bronz, Gümüş, Altın, Elmas, sonra Efsane. Kupayı kazandığın kat kayıt noktan olur; bir sonraki oyuna istersen oradan başlarsın. Baştan başlamak için ana ekrandaki \"Baştan başla\" düğmesini kullan.";
 "help.chapters.title" = "Bölümler";
@@ -89,6 +90,6 @@
 "help.combo.title" = "Kombo";
 "help.combo.body" = "Tek zıplayışta iki ya da daha fazla kat atlarsan kombo başlar. Üç saniye içinde yine çok katlı bir zıplayış yaparsan kombo büyür. Tek kat atlarsan, aşağı düşersen ya da süre dolarsa kombo biter. En az iki zıplayışlık kombo, atlanan kat sayısının karesi kadar puan verir.";
 "help.burn.title" = "Yanan film";
-"help.burn.body" = "Başladığın kattan beş kat yükseldikten sonra film alttan yanmaya başlar ve giderek hızlanır. Yanan kenar sana yetişirse oyun biter.";
+"help.burn.body" = "Başladığın kattan beş kat yükseldikten sonra film alttan yanmaya başlar ve giderek hızlanır. Yanan kenar sana yetişirse oyun biter. Oyun sakin bir tempoyla başlar; yükseldikçe ve bölümler ilerledikçe hem oyun hem yanan film hızlanır.";
 "help.privacy.title" = "Gizlilik";
 "help.privacy.body" = "Oyun internet olmadan çalışır. Reklam, satın alma, hesap ya da veri toplama yoktur. Puanın, kupaların ve kayıt noktan yalnızca bu cihazda saklanır.";

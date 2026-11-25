@@ -27,8 +27,6 @@ struct RootView: View {
     @AppStorage("selectedCharacter") private var selectedCharacter = 0
     /// En son yenilen boss'un arena katı (1000, 2000, ...).
     @AppStorage("defeatedBossFloor") private var defeatedBossFloor = 0
-    /// Varsayılan açık: kontroller yalnızca sol/sağ olduğundan zıplama kendiliğinden olur.
-    @AppStorage("autoJump") private var autoJump = true
     @State private var session: GameSession?
     @State private var result: GameResult?
     @State private var showingHelp = false
@@ -44,13 +42,11 @@ struct RootView: View {
             if let session {
                 GameView(
                     session: session,
-                    autoJump: autoJump,
                     onGameOver: { score, floor in finish(score: score, floor: floor) },
                     onCheckpoint: { floor in
                         checkpointFloor = max(checkpointFloor, floor)
                         trophyWallet += 1
                     },
-                    onAutoJumpChanged: { autoJump = $0 },
                     onBossDefeated: { floor in
                         defeatedBossFloor = max(defeatedBossFloor, floor)
                         trophyWallet += TowerScene.bossRewardCups

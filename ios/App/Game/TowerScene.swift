@@ -13,11 +13,11 @@ final class TowerScene: SKScene {
     var onGameOver: ((Int, Int) -> Void)?
     /// Kupa kazanıldığında hemen çağrılır (kayıt noktası kaydı için): kupanın katı.
     var onCheckpoint: ((Int) -> Void)?
-    var onAutoJumpChanged: ((Bool) -> Void)?
     /// Boss yenildiğinde: arena katı.
     var onBossDefeated: ((Int) -> Void)?
-    /// Açıkken karakter yere değdiği an kendiliğinden zıplar.
-    private(set) var autoJump: Bool
+    /// Tırmanışta karakter yere değdiği an kendiliğinden zıplar.
+    /// Boss dövüşü ayrı bir moddur: orada otomatik zıplama yoktur, parmak yukarı kaydırılarak zıplanır.
+    private var autoJump: Bool { sim.boss == nil }
 
     private var sim: TowerSimulation
     private let config: TowerConfig
@@ -67,10 +67,9 @@ final class TowerScene: SKScene {
     private var gameOverSent = false
     private let haptics = Haptics()
 
-    init(seed: UInt64, startFloor: Int, bossAlreadyDefeated: Bool, autoJump: Bool, character: GameCharacter) {
+    init(seed: UInt64, startFloor: Int, bossAlreadyDefeated: Bool, character: GameCharacter) {
         let config = TowerConfig()
         self.config = config
-        self.autoJump = autoJump
         self.characterStyle = character.style
         self.character = RubberHoseCharacter(style: character.style)
         self.sim = TowerSimulation(config: config, seed: seed, startFloor: startFloor, bossAlreadyDefeated: bossAlreadyDefeated)
@@ -103,7 +102,6 @@ final class TowerScene: SKScene {
             cameraNode.addChild(hud)
             controls.zPosition = 600
             hud.zPosition = 700
-            controls.setAuto(autoJump)
 
             shieldRing.strokeColor = Palette.slidingBeam
             shieldRing.lineWidth = 4
@@ -143,7 +141,9 @@ final class TowerScene: SKScene {
     private func showBossIntro() {
         let name = String(localized: "boss.name")
         showTitleCard(String(localized: "card.bossIntro \(name)"), big: true)
+        showTitleCard(String(localized: "card.bossJump"), big: false)
         hud.showBoss(true)
+        controls.showSwipeHint(true)
         haptics.notify(.warning)
         shake()
     }
@@ -446,6 +446,7 @@ final class TowerScene: SKScene {
                     octopus = nil
                 }
                 hud.showBoss(false)
+                controls.showSwipeHint(false)
                 showTitleCard(String(localized: "card.bossDefeated"), big: true)
                 showTitleCard(String(localized: "card.bossReward \(bossRewardCups)"), big: false)
                 showTitleCard(chapterTitle(forFloor: floor + 1), big: true)
@@ -743,13 +744,6 @@ final class TowerScene: SKScene {
         guard !sim.isDead else { return }
         for touch in touches {
             let point = touch.location(in: cameraNode)
-            if controls.isAutoButton(point) {
-                autoJump.toggle()
-                controls.setAuto(autoJump)
-                haptics.impact(.light)
-                onAutoJumpChanged?(autoJump)
-                continue
-            }
             let key = ObjectIdentifier(touch)
             touchRoles[key] = controlRole(for: point)
             swipeOrigins[key] = point
@@ -764,7 +758,7 @@ final class TowerScene: SKScene {
             let point = touch.location(in: cameraNode)
             // Parmak öbür yarıya kayarsa yön de değişir.
             touchRoles[key] = controlRole(for: point)
-            // Yukarı kaydırma: zıpla (OTO kapalıyken zıplamanın yolu). Her yeni kaydırma yeni bir zıplama.
+            // Yukarı kaydırma: zıpla (boss dövüşünde zıplamanın yolu). Her yeni kaydırma yeni bir zıplama.
             if let origin = swipeOrigins[key] {
                 if point.y - origin.y > swipeJumpDistance {
                     pendingJump = true

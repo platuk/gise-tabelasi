@@ -117,6 +117,8 @@ public struct TowerSimulation: Sendable {
     public internal(set) var respawnsUsed = 0
     /// Duvar taklasından sonra iniş yönlendirmesi sürüyor mu.
     public internal(set) var wallKickGuiding = false
+    /// Son inişten beri atılan duvar taklası sayısı (en fazla `maxWallKicks`).
+    public internal(set) var wallKicksSinceLanding = 0
 
     private var coyoteTimer: Double = 0
     private var jumpBuffer: Double = 0
@@ -174,8 +176,10 @@ public struct TowerSimulation: Sendable {
         guard !isDead, realDt > 0 else { return [] }
         var events: [TowerEvent] = []
 
+        // Tempo: oyun sakin başlar, katlar ilerledikçe hızlanır.
         // Ağır çekim yalnızca dünyayı yavaşlatır; baloncuk süreleri gerçek zamanla akar.
-        let dt = slowRemaining > 0 ? realDt * config.slowFactor : realDt
+        let pace = config.pace(forFloor: highestFloor)
+        let dt = realDt * pace * (slowRemaining > 0 ? config.slowFactor : 1)
         slowRemaining = max(0, slowRemaining - realDt)
         adrenalineRemaining = max(0, adrenalineRemaining - realDt)
         shieldRemaining = max(0, shieldRemaining - realDt)
@@ -277,9 +281,10 @@ public struct TowerSimulation: Sendable {
             let impact = abs(vx)
             vx = -vx * config.wallBounceDamping
             events.append(.wallBounce(side: hitWall))
-            if !isGrounded && impact >= config.wallKickMinSpeed {
+            if !isGrounded && impact >= config.wallKickMinSpeed && wallKicksSinceLanding < config.maxWallKicks {
                 vy = max(vy, config.wallKickVelocity)
                 wallKickGuiding = true
+                wallKicksSinceLanding += 1
                 events.append(.wallKick(side: hitWall))
             }
         }
@@ -336,6 +341,7 @@ public struct TowerSimulation: Sendable {
         boost = nil
         combo = nil
         wallKickGuiding = false
+        wallKicksSinceLanding = 0
         if let fight = boss {
             // Boss dövüşünde: arenaya geri dön, can dolar, havadaki mermiler temizlenir; boss'un canı aynı kalır.
             let arena = platform(floor: fight.arenaFloor)
@@ -372,6 +378,7 @@ public struct TowerSimulation: Sendable {
         vy = 0
         isGrounded = true
         wallKickGuiding = false
+        wallKicksSinceLanding = 0
         let climbed = floor - currentFloor
         currentFloor = floor
         events.append(.landed(floor: floor, floorsClimbed: climbed))
@@ -482,7 +489,7 @@ public struct TowerSimulation: Sendable {
         }
         guard burnActive else { return events }
         burnElapsed += dt
-        burnSpeed = min(config.burnMaxSpeed, config.burnBaseSpeed + config.burnAcceleration * burnElapsed)
+        burnSpeed = min(config.burnSpeedLimit(forFloor: highestFloor), config.burnBaseSpeed + config.burnAcceleration * burnElapsed)
         burnY = max(burnY + burnSpeed * dt, y - config.burnMaxLag)
         if y < burnY && boost == nil {
             if shieldRemaining > 0 {

@@ -5,24 +5,20 @@ struct GameView: View {
     @State private var scene: TowerScene
     private let onGameOver: (Int, Int) -> Void
     private let onCheckpoint: (Int) -> Void
-    private let onAutoJumpChanged: (Bool) -> Void
     private let onBossDefeated: (Int) -> Void
 
     init(
         session: GameSession,
-        autoJump: Bool,
         onGameOver: @escaping (Int, Int) -> Void,
         onCheckpoint: @escaping (Int) -> Void,
-        onAutoJumpChanged: @escaping (Bool) -> Void,
         onBossDefeated: @escaping (Int) -> Void
     ) {
         self.onGameOver = onGameOver
         self.onCheckpoint = onCheckpoint
-        self.onAutoJumpChanged = onAutoJumpChanged
         self.onBossDefeated = onBossDefeated
         _scene = State(initialValue: TowerScene(
             seed: session.seed, startFloor: session.startFloor, bossAlreadyDefeated: session.bossAlreadyDefeated,
-            autoJump: autoJump, character: session.character
+            character: session.character
         ))
     }
 
@@ -31,7 +27,6 @@ struct GameView: View {
             .onAppear {
                 scene.onGameOver = { score, floor in onGameOver(score, floor) }
                 scene.onCheckpoint = { floor in onCheckpoint(floor) }
-                scene.onAutoJumpChanged = { on in onAutoJumpChanged(on) }
                 scene.onBossDefeated = { floor in onBossDefeated(floor) }
             }
     }

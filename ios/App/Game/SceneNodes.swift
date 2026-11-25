@@ -538,29 +538,42 @@ enum ControlRole: Hashable {
 
 /// Dokunma kontrolleri: ekranın sol yarısına basılı tutmak sola, sağ yarısına basılı tutmak sağa koşturur.
 /// Alt köşelerdeki büyük silik oklar yalnızca ipucudur; basılan taraf parlar.
-/// Sağ üstteki "OTO" anahtarı otomatik zıplamayı açıp kapatır (ona dokunmak koşturmaz).
+/// Tırmanışta zıplama otomatiktir. Boss dövüşünde ortada "yukarı kaydır" ipucu görünür.
 final class ControlsOverlay: SKNode {
     private let left = ControlsOverlay.sideHint(pointingLeft: true)
     private let right = ControlsOverlay.sideHint(pointingLeft: false)
-    private let auto = SKNode()
-    private let autoCircle = SKShapeNode(circleOfRadius: 25)
-    private let autoLabel = SKLabelNode(fontNamed: "AmericanTypewriter-Bold")
-    private let autoRadius: CGFloat = 34
+    private let swipeHint = SKNode()
+    private var swipeHintBaseY: CGFloat = 0
 
     override init() {
         super.init()
         addChild(left)
         addChild(right)
-        autoCircle.strokeColor = Palette.ink
-        autoCircle.lineWidth = 3
-        autoLabel.text = String(localized: "controls.auto")
-        autoLabel.fontSize = 13
-        autoLabel.fontColor = Palette.ink
-        autoLabel.verticalAlignmentMode = .center
-        auto.addChild(autoCircle)
-        auto.addChild(autoLabel)
-        addChild(auto)
-        setAuto(false)
+
+        let arrow = CGMutablePath()
+        arrow.move(to: CGPoint(x: 0, y: 22))
+        arrow.addLine(to: CGPoint(x: 16, y: 2))
+        arrow.addLine(to: CGPoint(x: 6, y: 2))
+        arrow.addLine(to: CGPoint(x: 6, y: -18))
+        arrow.addLine(to: CGPoint(x: -6, y: -18))
+        arrow.addLine(to: CGPoint(x: -6, y: 2))
+        arrow.addLine(to: CGPoint(x: -16, y: 2))
+        arrow.closeSubpath()
+        let shape = SKShapeNode(path: arrow)
+        shape.fillColor = Palette.cream
+        shape.strokeColor = Palette.ink
+        shape.lineWidth = 3
+        shape.lineJoin = .round
+        swipeHint.addChild(shape)
+        let label = SKLabelNode(fontNamed: "AmericanTypewriter-Bold")
+        label.text = String(localized: "controls.swipeJump")
+        label.fontSize = 13
+        label.fontColor = Palette.ink
+        label.verticalAlignmentMode = .top
+        label.position = CGPoint(x: 0, y: -26)
+        swipeHint.addChild(label)
+        swipeHint.isHidden = true
+        addChild(swipeHint)
         highlight([])
     }
 
@@ -570,19 +583,28 @@ final class ControlsOverlay: SKNode {
         let y = -size.height / 2 + bottomInset + 70
         left.position = CGPoint(x: -size.width / 4, y: y)
         right.position = CGPoint(x: size.width / 4, y: y)
-        // Puanın altında, sağ üst köşe: koşarken yanlışlıkla dokunulmaz.
-        auto.position = CGPoint(x: size.width / 2 - 46, y: size.height / 2 - topInset - 84)
+        swipeHintBaseY = y + 6
+        swipeHint.removeAllActions()
+        swipeHint.position = CGPoint(x: 0, y: swipeHintBaseY)
+        if !swipeHint.isHidden {
+            swipeHint.isHidden = true
+            showSwipeHint(true)
+        }
     }
 
-    func setAuto(_ on: Bool) {
-        autoCircle.fillColor = on ? Palette.flame : Palette.cream
-        auto.alpha = on ? 0.95 : 0.5
-        auto.removeAllActions()
-        auto.run(.sequence([.scale(to: 1.2, duration: 0), .wait(forDuration: 1.0 / 12.0), .scale(to: 1, duration: 0)]))
-    }
-
-    func isAutoButton(_ point: CGPoint) -> Bool {
-        hypot(point.x - auto.position.x, point.y - auto.position.y) <= autoRadius
+    /// Boss dövüşünde "yukarı kaydır: zıpla" ipucunu gösterir; 12 fps kesik bir zıplama hareketiyle.
+    func showSwipeHint(_ on: Bool) {
+        guard swipeHint.isHidden == on else { return }
+        swipeHint.isHidden = !on
+        swipeHint.removeAllActions()
+        swipeHint.position.y = swipeHintBaseY
+        guard on else { return }
+        let frame = 1.0 / 12.0
+        swipeHint.run(.repeatForever(.sequence([
+            .moveBy(x: 0, y: 6, duration: 0), .wait(forDuration: frame * 2),
+            .moveBy(x: 0, y: 6, duration: 0), .wait(forDuration: frame * 2),
+            .moveBy(x: 0, y: -12, duration: 0), .wait(forDuration: frame * 4),
+        ])))
     }
 
     func highlight(_ roles: Set<ControlRole>) {

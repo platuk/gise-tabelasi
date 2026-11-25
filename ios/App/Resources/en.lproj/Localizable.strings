@@ -7,7 +7,8 @@
 "title.best %lld %lld" = "Best: %1$lld points · floor %2$lld";
 "title.help" = "How to play";
 
-"controls.auto" = "AUTO";
+"controls.swipeJump" = "SWIPE: JUMP";
+"card.bossJump" = "SWIPE UP TO JUMP!";
 "title.characters %lld" = "Characters · %lld cups";
 
 "character.tipi" = "Tippy";
@@ -31,7 +32,7 @@
 "card.respawn" = "ONE MORE CHANCE!";
 
 "help.assist.title" = "Helping hand";
-"help.assist.body" = "If you barely miss the edge of a girder, the game gently pulls you onto it. Hit a wall fast while in the air and your character flips and rises, steered toward the highest girder it can reach; use it to build combos.";
+"help.assist.body" = "If you barely miss the edge of a girder, the game gently pulls you onto it. Hit a wall fast while in the air and your character flips and rises, steered toward the highest girder it can reach; use it to build combos. You get at most 10 flips before landing on a girder; after that the wall only bounces you back. Landing on a girder resets the count.";
 "help.bubbles.title" = "Surprise bubbles";
 "help.bubbles.body" = "Bubbles float above some girders; pass through one to take it. The rocket flies you 50 floors up. Slow motion slows the world for 6 seconds. Adrenaline makes you run faster and jump higher for 8 seconds. The shield protects you from the burning film for 10 seconds. Active effects and their remaining time show at the top of the screen.";
 "help.respawn.title" = "One more chance";
@@ -74,8 +75,8 @@
 "help.how.body" = "Climb a skyscraper under construction by jumping from girder to girder, as high as you can. You can pass through girders from below and land on top of them. Girders get narrower as you climb.";
 "help.controls.title" = "Controls";
 "help.controls.body" = "Hold the left half of the screen to run left and the right half to run right. The faster you run, the higher you jump. Hit a wall and you bounce off it, keeping your speed.";
-"help.auto.title" = "Jumping and AUTO";
-"help.auto.body" = "The AUTO button at the top right turns auto jump on or off, and it starts on. While it is on, your character jumps by itself every time it lands; you only steer. While it is off, swipe the finger you are holding upward to jump. The setting is remembered.";
+"help.auto.title" = "Jumping";
+"help.auto.body" = "While climbing, your character jumps by itself every time it lands; you only steer. The boss fight is a separate mode: there is no auto jump, so swipe the finger you are holding upward to jump. Auto jump comes back when the fight is over.";
 "help.trophy.title" = "Trophies and checkpoints";
 "help.trophy.body" = "Every 100 floors you win a trophy: Bronze, Silver, Gold, Diamond, then Legend. The floor where you win it becomes your checkpoint, and your next game can start there. To start from the bottom, use \"Start over\" on the title screen.";
 "help.chapters.title" = "Chapters";
@@ -89,6 +90,6 @@
 "help.combo.title" = "Combo";
 "help.combo.body" = "Jump two or more floors at once to start a combo. Make another multi-floor jump within three seconds to grow it. A combo ends when you jump only one floor, fall down, or run out of time. A combo of at least two jumps scores the number of floors squared.";
 "help.burn.title" = "Burning film";
-"help.burn.body" = "Once you climb five floors above where you started, the film starts burning from the bottom and keeps speeding up. If the burning edge catches you, the game ends.";
+"help.burn.body" = "Once you climb five floors above where you started, the film starts burning from the bottom and keeps speeding up. If the burning edge catches you, the game ends. The game starts at a calm pace; as you climb and reach new chapters, both the game and the burning film speed up.";
 "help.privacy.title" = "Privacy";
 "help.privacy.body" = "The game works offline. There are no ads, purchases, accounts, or data collection. Your score, trophies, and checkpoint are stored only on this device.";

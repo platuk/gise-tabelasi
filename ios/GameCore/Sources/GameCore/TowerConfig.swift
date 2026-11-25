@@ -52,12 +52,20 @@ public struct TowerConfig: Equatable, Sendable {
     /// Ekranda kart gösterilen kat aralığı.
     public var cardInterval: Int = 25
 
-    // Yanan film
+    // Tempo: oyun sakin başlar, katlar ve bölümler ilerledikçe hızlanır (dünya zamanı çarpanı).
+    public var paceStart: Double = 0.8
+    /// Her kat için tempo artışı (kat 800'de normal hıza ulaşır).
+    public var pacePerFloor: Double = 0.00025
+    public var paceMax: Double = 1.12
+
+    // Yanan film (yavaş başlar; azami hızı bölümle artar)
     public var burnStartFloor: Int = 5
     public var burnStartDistance: Double = 420
-    public var burnBaseSpeed: Double = 38
-    public var burnAcceleration: Double = 1.5
-    public var burnMaxSpeed: Double = 240
+    public var burnBaseSpeed: Double = 28
+    public var burnAcceleration: Double = 0.8
+    public var burnMaxSpeed: Double = 150
+    public var burnMaxSpeedPerChapter: Double = 35
+    public var burnMaxSpeedCap: Double = 260
     /// Oyuncu çok uzaklaşırsa film bu mesafeye kadar yetişir.
     public var burnMaxLag: Double = 640
 
@@ -71,6 +79,8 @@ public struct TowerConfig: Equatable, Sendable {
     public var wallKickVelocity: Double = 1000
     /// Takladan sonra ulaşılabilecek en yüksek kirişe doğru yönlendirme ivmesi (pt/sn²).
     public var wallKickSteer: Double = 700
+    /// Yere basmadan arka arkaya en fazla bu kadar duvar taklası; sonrasında duvar yalnızca seker.
+    public var maxWallKicks: Int = 10
 
     // Baloncuklar
     public var bubbleChance: Double = 0.08
@@ -112,6 +122,16 @@ public struct TowerConfig: Equatable, Sendable {
     /// 0'dan başlayan bölüm numarası (0: kat 0–999, 1: kat 1000–1999, ...).
     public func chapter(forFloor floor: Int) -> Int {
         max(0, floor) / max(1, chapterLength)
+    }
+
+    /// Oyunun temposu (dünya zamanı çarpanı): kat 0'da 0.8, kat 800'de 1.0, en çok 1.12.
+    public func pace(forFloor floor: Int) -> Double {
+        min(paceMax, paceStart + pacePerFloor * Double(max(0, floor)))
+    }
+
+    /// Yanan filmin bu bölümdeki azami hızı.
+    public func burnSpeedLimit(forFloor floor: Int) -> Double {
+        min(burnMaxSpeedCap, burnMaxSpeed + burnMaxSpeedPerChapter * Double(chapter(forFloor: floor)))
     }
 
     /// Bu kat bir boss arenası mı (1000, 2000, ...).

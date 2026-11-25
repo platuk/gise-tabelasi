@@ -4,7 +4,9 @@
 
 - Her 100 katta bir kupa: Bronz, Gümüş, Altın, Elmas, Efsane. Kupa katı kayıt noktasıdır; sonraki oyun oradan başlayabilir.
 - Bölüm 1 (0–99): çelik kirişler. Bölüm 2 (100–199): kısa, kayan kirişler (oyuncuyu taşır). Bölüm 3 (200–299): kaygan kirişler. 300+: karışık.
-- Otomatik zıplama (OTO): açıkken karakter her inişte kendiliğinden zıplar.
+- Zıplama: tırmanışta her zaman otomatik (ayar yok). Boss dövüşü ayrı mod: otomatik zıplama yok, yukarı kaydırarak zıplanır.
+- Tempo: dünya zamanı çarpanı kat 0'da 0.8, kat 800'de 1.0, en çok 1.12. Yanan film yavaş başlar (28 pt/sn); azami hızı bölüm başına +35 (150 → 260).
+- Duvar taklası: yere basmadan en fazla 10; sonra duvar yalnızca seker.
 - Kupa, ödül kupasıdır; karakter kupa ya da fincan değildir (başka bir oyunun karakterine benzememek için).
 
 ## Yardım, baloncuklar, karakterler, diriliş
