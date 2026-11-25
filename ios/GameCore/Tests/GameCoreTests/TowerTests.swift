@@ -504,9 +504,10 @@ final class TowerTests: XCTestCase {
     // MARK: Oynanabilirlik
 
     /// Basit bir bot her bölümü tırmanabilmeli: kuralların ve kiriş yerleşiminin oynanabilir olduğunun kanıtı.
-    private func botClimb(seed: UInt64, startFloor: Int, floors: Int, seconds: Double) -> Int {
+    private func botClimb(seed: UInt64, startFloor: Int, floors: Int, seconds: Double, speed: Double = 1) -> Int {
         var config = TowerConfig()
         config.burnStartFloor = .max
+        config.speedMultiplier = speed
         // Bölüm başından (boss katından) başlanıyorsa boss yenilmiş sayılır; burada yalnızca tırmanış ölçülür.
         var sim = TowerSimulation(config: config, seed: seed, startFloor: startFloor, bossAlreadyDefeated: true)
         var time = 0.0
@@ -566,6 +567,19 @@ final class TowerTests: XCTestCase {
 
     func testBotCanClimbMixedChapter() {
         assertBotClimbs(from: [3000, 3500], floors: 20)
+    }
+
+    /// Orta ve hızlı oyun hızında da her bölüm tırmanılabilir.
+    func testBotClimbsAtEverySpeed() {
+        for speed in [1.15, 1.3] {
+            for start in [0, 900, 1900, 2900, 3500] {
+                XCTAssertGreaterThanOrEqual(botClimb(seed: 42, startFloor: start, floors: 20, seconds: 240, speed: speed), 20,
+                                            "hız \(speed) kat \(start)")
+            }
+        }
+        var fast = TowerConfig()
+        fast.speedMultiplier = 1.3
+        XCTAssertEqual(fast.pace(forFloor: 0), TowerConfig().pace(forFloor: 0) * 1.3, accuracy: 1e-9)
     }
 
     // MARK: Boss dövüşü

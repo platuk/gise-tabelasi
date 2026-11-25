@@ -1,147 +1,132 @@
 import SpriteKit
 import GameCore
 
-/// Kiriş. Orijin: üst yüzeyin ortası. Türüne göre görünür:
-/// çelik (perçinli kırmızı), kayan (tekerlekli yeşil), kaygan (parlak, damlalı buz mavisi), kupa katı (sarı, kupalı).
-final class PlatformNode: SKNode {
-    let isSliding: Bool
-
-    init(platform: Platform) {
-        if case .sliding = platform.kind { isSliding = true } else { isSliding = false }
-        super.init()
-        position = CGPoint(x: platform.centerX, y: platform.y)
-        let width = CGFloat(platform.width)
-
-        let beam = SKShapeNode(rect: CGRect(x: -width / 2, y: -13, width: width, height: 13), cornerRadius: 2)
-        switch platform.kind {
-        case .steel:
-            beam.fillColor = platform.isMilestone ? Palette.milestone : Palette.beam
-        case .sliding:
-            beam.fillColor = Palette.slidingBeam
-        case .slippery:
-            beam.fillColor = Palette.slipperyBeam
-        }
-        beam.strokeColor = Palette.ink
-        beam.lineWidth = 2.5
-        addChild(beam)
-
-        if isSliding {
-            for side in [CGFloat(-1), 1] {
-                let wheel = SKShapeNode(circleOfRadius: 4.5)
-                wheel.fillColor = Palette.cream
-                wheel.strokeColor = Palette.ink
-                wheel.lineWidth = 2
-                wheel.position = CGPoint(x: side * (width / 2 - 9), y: -17)
-                addChild(wheel)
-            }
-        }
-
-        if platform.isSlippery {
-            let shine = CGMutablePath()
-            var x = -width / 2 + 10
-            while x < width / 2 - 10 {
-                shine.move(to: CGPoint(x: x, y: -4))
-                shine.addLine(to: CGPoint(x: x + 7, y: -9))
-                x += 22
-            }
-            let streaks = SKShapeNode(path: shine)
-            streaks.strokeColor = .white
-            streaks.lineWidth = 2
-            streaks.lineCap = .round
-            addChild(streaks)
-            let drips = CGMutablePath()
-            for fraction in [CGFloat(-0.3), 0.15, 0.38] {
-                let dx = width * fraction
-                drips.addEllipse(in: CGRect(x: dx - 2, y: -21, width: 4, height: 7))
-            }
-            let dripNode = SKShapeNode(path: drips)
-            dripNode.fillColor = Palette.slipperyBeam
-            dripNode.strokeColor = Palette.ink
-            dripNode.lineWidth = 1.2
-            addChild(dripNode)
-        }
-
-        if platform.isMilestone, let tier = TrophyTier(checkpointFloor: platform.floor) {
-            let trophy = TrophyNode(tier: tier, size: 30)
-            trophy.position = CGPoint(x: 0, y: 17)
-            trophy.zPosition = 1
-            addChild(trophy)
-        }
-
-        let details = CGMutablePath()
-        details.move(to: CGPoint(x: -width / 2 + 3, y: -9))
-        details.addLine(to: CGPoint(x: width / 2 - 3, y: -9))
-        var x = -width / 2 + 9
-        while x < width / 2 - 6 {
-            details.addEllipse(in: CGRect(x: x - 1.6, y: -5.6, width: 3.2, height: 3.2))
-            x += 17
-        }
-        let rivets = SKShapeNode(path: details)
-        rivets.strokeColor = Palette.ink
-        rivets.fillColor = Palette.ink
-        rivets.lineWidth = 1
-        addChild(rivets)
-
-        if platform.floor > 0 && platform.floor % 10 == 0 {
-            let plate = SKShapeNode(rect: CGRect(x: -17, y: -32, width: 34, height: 16), cornerRadius: 3)
-            plate.fillColor = Palette.cream
-            plate.strokeColor = Palette.ink
-            plate.lineWidth = 2
-            addChild(plate)
-            let label = SKLabelNode(fontNamed: "AmericanTypewriter-Bold")
-            label.text = "\(platform.floor)"
-            label.fontSize = 11
-            label.fontColor = Palette.ink
-            label.verticalAlignmentMode = .center
-            label.position = CGPoint(x: 0, y: -24)
-            addChild(label)
-        }
-    }
-
-    required init?(coder aDecoder: NSCoder) { return nil }
-}
-
-/// Kulenin tuğla duvarı. Kamerayla birlikte taşınır, harç çizgileri kaydırılarak sonsuz görünür.
+/// Kulenin duvarı: dünyaya göre tuğla, ahşap, yosunlu taş, şato taşı, uzay paneli ya da perçinli sac.
+/// Kamerayla birlikte taşınır, desen kaydırılarak sonsuz görünür.
 final class WallNode: SKNode {
     private let base = SKShapeNode()
-    private let mortar = SKShapeNode()
-    private let brickHeight: CGFloat = 16
+    private let pattern = SKShapeNode()
+    private let accents = SKShapeNode()
+    private var rowHeight: CGFloat = 16
+    private var size = CGSize(width: 18, height: 800)
+    private(set) var theme = WorldTheme.harbor
 
     override init() {
         super.init()
-        base.fillColor = Palette.brick
         base.strokeColor = Palette.ink
         base.lineWidth = 2.5
-        mortar.strokeColor = Palette.ink
-        mortar.lineWidth = 1
-        mortar.alpha = 0.45
+        pattern.strokeColor = Palette.ink
+        pattern.lineWidth = 1
+        accents.lineWidth = 1.4
         addChild(base)
-        addChild(mortar)
+        addChild(pattern)
+        addChild(accents)
     }
 
     required init?(coder aDecoder: NSCoder) { return nil }
 
     func configure(width: CGFloat, height: CGFloat) {
+        size = CGSize(width: width, height: height)
+        redraw()
+    }
+
+    func setTheme(_ newTheme: WorldTheme) {
+        guard newTheme != theme else { return }
+        theme = newTheme
+        redraw()
+    }
+
+    private func redraw() {
+        let width = size.width
+        let height = size.height
         base.path = CGPath(rect: CGRect(x: -width / 2, y: -height / 2, width: width, height: height), transform: nil)
         let path = CGMutablePath()
-        var y = -height / 2 - brickHeight * 2
-        var row = 0
-        while y < height / 2 {
-            path.move(to: CGPoint(x: -width / 2, y: y))
-            path.addLine(to: CGPoint(x: width / 2, y: y))
-            let joint = row % 2 == 0 ? -width / 6 : width / 6
-            path.move(to: CGPoint(x: joint, y: y))
-            path.addLine(to: CGPoint(x: joint, y: min(y + brickHeight, height / 2)))
-            y += brickHeight
-            row += 1
+        let accent = CGMutablePath()
+        let left = -width / 2
+        let right = width / 2
+        func rows(_ h: CGFloat, joints: Bool) {
+            rowHeight = h
+            var y = -height / 2 - h * 2
+            var row = 0
+            while y < height / 2 + h {
+                path.move(to: CGPoint(x: left, y: y))
+                path.addLine(to: CGPoint(x: right, y: y))
+                if joints {
+                    let joint = row % 2 == 0 ? -width / 6 : width / 6
+                    path.move(to: CGPoint(x: joint, y: y))
+                    path.addLine(to: CGPoint(x: joint, y: y + h))
+                }
+                y += h
+                row += 1
+            }
         }
-        mortar.path = path
+        switch theme {
+        case .harbor:
+            base.fillColor = SKColor(red: 0.55, green: 0.40, blue: 0.27, alpha: 1)
+            rows(12, joints: false)
+            var y = -height / 2 - 24
+            while y < height / 2 + 24 {
+                accent.addEllipse(in: CGRect(x: -1.2, y: y + 5, width: 2.4, height: 2.4))
+                y += 24
+            }
+            accents.fillColor = Palette.ink
+        case .garden:
+            base.fillColor = SKColor(red: 0.62, green: 0.60, blue: 0.54, alpha: 1)
+            rows(22, joints: true)
+            var y = -height / 2 - 44
+            while y < height / 2 + 44 {
+                accent.move(to: CGPoint(x: right - 1, y: y))
+                accent.addQuadCurve(to: CGPoint(x: right - 1, y: y + 44), control: CGPoint(x: left + 2, y: y + 22))
+                accent.addEllipse(in: CGRect(x: -3, y: y + 20, width: 6, height: 4))
+                y += 44
+            }
+            accents.strokeColor = SKColor(red: 0.30, green: 0.55, blue: 0.25, alpha: 1)
+            accents.fillColor = SKColor(red: 0.42, green: 0.70, blue: 0.32, alpha: 1)
+        case .haunted:
+            base.fillColor = SKColor(red: 0.30, green: 0.28, blue: 0.36, alpha: 1)
+            rows(26, joints: true)
+            accents.fillColor = .clear
+            accents.strokeColor = .clear
+        case .space:
+            base.fillColor = SKColor(red: 0.62, green: 0.68, blue: 0.78, alpha: 1)
+            rows(30, joints: false)
+            var y = -height / 2 - 60
+            while y < height / 2 + 60 {
+                accent.addEllipse(in: CGRect(x: -2, y: y + 13, width: 4, height: 4))
+                y += 30
+            }
+            accents.fillColor = SKColor(red: 0.40, green: 0.95, blue: 0.55, alpha: 1)
+            accents.strokeColor = Palette.ink
+        case .factory:
+            base.fillColor = SKColor(red: 0.40, green: 0.44, blue: 0.40, alpha: 1)
+            rows(28, joints: false)
+            var y = -height / 2 - 56
+            while y < height / 2 + 56 {
+                for x in [left + 3.5, right - 3.5] {
+                    accent.addEllipse(in: CGRect(x: x - 1.3, y: y + 4, width: 2.6, height: 2.6))
+                    accent.addEllipse(in: CGRect(x: x - 1.3, y: y + 22, width: 2.6, height: 2.6))
+                }
+                y += 28
+            }
+            accents.fillColor = Palette.ink
+            accents.strokeColor = .clear
+        case .city:
+            base.fillColor = Palette.brick
+            rows(16, joints: true)
+            accents.fillColor = .clear
+            accents.strokeColor = .clear
+        }
+        pattern.path = path
+        pattern.alpha = theme == .haunted ? 0.7 : 0.45
+        accents.path = accent
     }
 
     func scroll(cameraY: Double) {
-        let period = Double(brickHeight * 2)
-        let offset = cameraY.truncatingRemainder(dividingBy: period)
-        mortar.position = CGPoint(x: 0, y: CGFloat(-offset))
+        // Desenler satır yüksekliğinin iki katıyla tekrar eder (süsler de bu aralıkta).
+        let period = Double(rowHeight * 2)
+        let offset = CGFloat(cameraY.truncatingRemainder(dividingBy: period))
+        pattern.position = CGPoint(x: 0, y: -offset)
+        accents.position = pattern.position
     }
 }
 

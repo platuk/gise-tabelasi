@@ -57,6 +57,8 @@ public struct TowerConfig: Equatable, Sendable {
     /// Her kat için tempo artışı (kat 800'de normal hıza ulaşır).
     public var pacePerFloor: Double = 0.00025
     public var paceMax: Double = 1.12
+    /// Oyuncunun seçtiği oyun hızı (normal 1, orta 1.15, hızlı 1.3); tempoyu bütünüyle çarpar.
+    public var speedMultiplier: Double = 1
 
     // Yanan film (yavaş başlar; azami hızı bölümle artar)
     public var burnStartFloor: Int = 5
@@ -126,7 +128,7 @@ public struct TowerConfig: Equatable, Sendable {
 
     /// Oyunun temposu (dünya zamanı çarpanı): kat 0'da 0.8, kat 800'de 1.0, en çok 1.12.
     public func pace(forFloor floor: Int) -> Double {
-        min(paceMax, paceStart + pacePerFloor * Double(max(0, floor)))
+        min(paceMax, paceStart + pacePerFloor * Double(max(0, floor))) * speedMultiplier
     }
 
     /// Yanan filmin bu bölümdeki azami hızı.

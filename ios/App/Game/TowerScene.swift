@@ -8,9 +8,38 @@ import GameCore
 /// - Fizik: saniyede 120 sabit adım (tutarlı zıplama).
 /// - Konum ve kamera: her ekran karesinde akıcı.
 /// - Çizim titreşimi, film greni, alev: saniyede 12 kare ("on twos"), elle çizilmiş his için kasıtlı olarak kesik.
+/// Oyun modu: tırmanış, tek boss dövüşü ya da bütün boss'lar sırayla.
+enum PlayMode: Equatable {
+    case climb
+    case singleBoss
+    case bossRush
+}
+
+/// Oyuncunun seçtiği hız. Tempoyu bütünüyle çarpar; tırmanış botu her hızda testlerden geçer.
+enum GameSpeed: Int, CaseIterable {
+    case normal = 0
+    case medium = 1
+    case fast = 2
+
+    var multiplier: Double {
+        switch self {
+        case .normal: return 1
+        case .medium: return 1.15
+        case .fast: return 1.3
+        }
+    }
+}
+
+/// Oyun sonu özeti.
+struct GameSummary {
+    let score: Int
+    let floor: Int
+    let bossesBeaten: Int
+    let victory: Bool
+}
+
 final class TowerScene: SKScene {
-    /// (puan, ulaşılan kat)
-    var onGameOver: ((Int, Int) -> Void)?
+    var onGameOver: ((GameSummary) -> Void)?
     /// Kupa kazanıldığında hemen çağrılır (kayıt noktası kaydı için): kupanın katı.
     var onCheckpoint: ((Int) -> Void)?
     /// Boss yenildiğinde: arena katı.
@@ -42,8 +71,13 @@ final class TowerScene: SKScene {
     /// Işın ve fışkırma uyarısında hedef işareti (arenada).
     private let targetMarker = SKShapeNode()
     private let sound = SoundEngine.shared
-    /// Boss provası: ödül ve kayıt yok; dövüş bitince oyun biter.
-    let practice: Bool
+    /// Boss modlarında ödül ve kayıt yok; tek boss modunda dövüş bitince, sıralı modda altıncı boss'tan sonra oyun biter.
+    let mode: PlayMode
+    private var practice: Bool { mode != .climb }
+    private let seed: UInt64
+    /// Boss modlarında yenilen boss sayısı ve toplam boss puanı.
+    private var bossesBeaten = 0
+    private var bossScore = 0
     private(set) var gamePaused = false
     var isOver: Bool { gameOverSent }
     private var projectileNodes: [Int: ProjectileNode] = [:]
@@ -74,10 +108,13 @@ final class TowerScene: SKScene {
     private var gameOverSent = false
     private let haptics = Haptics()
 
-    init(seed: UInt64, startFloor: Int, bossAlreadyDefeated: Bool, character: GameCharacter, practice: Bool = false) {
-        let config = TowerConfig()
+    init(seed: UInt64, startFloor: Int, bossAlreadyDefeated: Bool, character: GameCharacter,
+         mode: PlayMode = .climb, speed: GameSpeed = .normal) {
+        var config = TowerConfig()
+        config.speedMultiplier = speed.multiplier
         self.config = config
-        self.practice = practice
+        self.mode = mode
+        self.seed = seed
         self.characterStyle = character.style
         self.character = RubberHoseCharacter(style: character.style)
         self.sim = TowerSimulation(config: config, seed: seed, startFloor: startFloor, bossAlreadyDefeated: bossAlreadyDefeated)
@@ -165,6 +202,31 @@ final class TowerScene: SKScene {
         sound.setMood(.boss)
         sound.play(.bossIntro)
         shake()
+    }
+
+    /// Sıralı boss modunda bir sonraki boss'un arenasını kurar.
+    private func loadBoss(number: Int) {
+        sim = TowerSimulation(config: config, seed: seed &+ UInt64(number), startFloor: number * config.chapterLength)
+        for node in platformNodes.values { node.removeFromParent() }
+        platformNodes.removeAll()
+        for node in bubbleNodes.values { node.removeFromParent() }
+        bubbleNodes.removeAll()
+        for node in projectileNodes.values { node.removeFromParent() }
+        projectileNodes.removeAll()
+        bossNode?.removeFromParent()
+        bossNode = nil
+        targetMarker.path = nil
+        if let fight = sim.boss {
+            cameraY = Double(fight.arenaFloor) * config.floorSpacing + visibleHeight * 0.42
+        }
+        syncNodes()
+        character.isHidden = false
+        showBossIntro()
+        runIris(closing: false, center: CGPoint(x: sim.x, y: sim.y + 24)) { [weak self] in
+            self?.lastUpdate = 0
+            self?.accumulator = 0
+            self?.isRespawning = false
+        }
     }
 
     // MARK: Duraklatma
@@ -306,6 +368,9 @@ final class TowerScene: SKScene {
 
         leftWall.position = CGPoint(x: config.wallThickness / 2, y: cameraY)
         rightWall.position = CGPoint(x: config.worldWidth - config.wallThickness / 2, y: cameraY)
+        let wallTheme = WorldTheme.forFloor(Int(cameraY / config.floorSpacing), config: config)
+        leftWall.setTheme(wallTheme)
+        rightWall.setTheme(wallTheme)
         leftWall.scroll(cameraY: cameraY)
         rightWall.scroll(cameraY: cameraY)
 
@@ -434,7 +499,9 @@ final class TowerScene: SKScene {
             platformNodes[floor] = nil
         }
         for floor in low...high where platformNodes[floor] == nil {
-            let node = PlatformNode(platform: sim.platform(floor: floor))
+            let platform = sim.platform(floor: floor)
+            let node = PlatformNode(platform: platform, theme: WorldTheme.forFloor(floor, config: config),
+                                    materialIndex: floor / max(1, config.milestoneInterval))
             node.zPosition = 2
             world.addChild(node)
             platformNodes[floor] = node
@@ -527,7 +594,7 @@ final class TowerScene: SKScene {
                 spawnStars(at: CGPoint(x: sim.x, y: sim.y + 30))
                 character.playHurt()
                 sound.play(.playerHit)
-            case .bossDefeated(_, let floor):
+            case .bossDefeated(let number, let floor):
                 if let node = bossNode {
                     node.playDefeat(in: world)
                     bossNode = nil
@@ -541,9 +608,22 @@ final class TowerScene: SKScene {
                 haptics.notify(.success)
                 shake()
                 if practice {
-                    // Prova bitti: ödül yok, kısa bir zafer gösterisinden sonra perde iner.
-                    sound.setMood(.off)
-                    run(.sequence([.wait(forDuration: 2.6), .run { [weak self] in self?.gameOver(victory: true) }]))
+                    bossesBeaten += 1
+                    bossScore += config.bossDefeatBonus * number
+                    // Zafer gösterisi sürerken oyun durur (karakter üstteki kirişlere zıplamasın).
+                    isRespawning = true
+                    if mode == .bossRush && number < BossKind.allCases.count {
+                        // Sıradaki boss: iris kapanır, yeni arena, iris açılır.
+                        run(.sequence([.wait(forDuration: 2.4), .run { [weak self] in
+                            guard let self else { return }
+                            self.runIris(closing: true, center: self.character.position) {
+                                self.loadBoss(number: number + 1)
+                            }
+                        }]))
+                    } else {
+                        sound.setMood(.off)
+                        run(.sequence([.wait(forDuration: 2.6), .run { [weak self] in self?.gameOver(victory: true) }]))
+                    }
                 } else {
                     sound.setMood(.climb)
                     showTitleCard(String(localized: "card.bossReward \(bossRewardCups)"), big: false)
@@ -846,9 +926,9 @@ final class TowerScene: SKScene {
             })
             actions.append(.wait(forDuration: 1.0 / 12.0))
         }
-        let score = sim.score
-        let floor = sim.highestFloor
-        actions.append(.run { [weak self] in self?.onGameOver?(score, floor) })
+        let summary = GameSummary(score: practice ? bossScore : sim.score, floor: sim.highestFloor,
+                                  bossesBeaten: bossesBeaten, victory: victory)
+        actions.append(.run { [weak self] in self?.onGameOver?(summary) })
         iris.run(.sequence(actions))
     }
 

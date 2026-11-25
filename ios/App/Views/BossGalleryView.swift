@@ -2,12 +2,17 @@ import GameCore
 import SpriteKit
 import SwiftUI
 
-/// Boss galerisi: altı boss, hangi bölüm sonunda beklediği, yenilip yenilmediği ve prova düğmesi.
-/// Provada ödül ya da kayıt yoktur; oyuncu istediği boss'a çalışabilir.
+/// Boss savaşı ekranı: yalnızca boss'larla dövüş.
+/// "Hepsi sırayla": altı boss arka arkaya (rekor tutulur). Ya da istenen tek boss seçilip dövüşülür.
+/// Bu modlarda kupa, kayıt noktası ya da tırmanış rekoru değişmez.
 struct BossGalleryView: View {
     let defeatedBossFloor: Int
-    let onPractice: (BossKind) -> Void
+    let bestBossRush: Int
+    let onFight: (BossKind) -> Void
+    let onRush: () -> Void
     @Environment(\.dismiss) private var dismiss
+
+    private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
     var body: some View {
         ZStack {
@@ -15,7 +20,7 @@ struct BossGalleryView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     HStack {
-                        Text("gallery.title").font(Theme.title(30))
+                        Text("bosses.title").font(Theme.title(30))
                         Spacer()
                         Button {
                             MenuFeedback.tap()
@@ -24,16 +29,25 @@ struct BossGalleryView: View {
                             Text("help.done").font(Theme.title(18))
                         }
                     }
-                    Text("gallery.hint")
+                    Text("bosses.hint")
                         .font(Theme.title(14))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .opacity(0.8)
-                    ForEach(BossKind.allCases, id: \.rawValue) { kind in
-                        card(kind)
+                    VStack(spacing: 8) {
+                        TicketButton(title: "bosses.rush", size: 22, action: onRush)
+                        if bestBossRush > 0 {
+                            Text("bosses.rushBest \(bestBossRush)").font(Theme.title(14))
+                        }
+                    }
+                    .padding(.vertical, 6)
+                    LazyVGrid(columns: columns, spacing: 12) {
+                        ForEach(BossKind.allCases, id: \.rawValue) { kind in
+                            card(kind)
+                        }
                     }
                 }
                 .foregroundStyle(Theme.ink)
-                .padding(24)
+                .padding(20)
             }
         }
     }
@@ -42,28 +56,32 @@ struct BossGalleryView: View {
         let number = kind.rawValue + 1
         let floor = number * 1000
         let defeated = defeatedBossFloor >= floor
-        return VStack(spacing: 8) {
+        return VStack(spacing: 6) {
             SpriteView(scene: BossPreviewScene(kind: kind, locked: false), options: [.allowsTransparency])
-                .frame(height: 170)
+                .frame(height: 120)
                 .overlay(alignment: .topTrailing) {
                     if defeated {
                         Text("gallery.defeated")
-                            .font(Theme.title(15))
+                            .font(Theme.title(12))
                             .foregroundStyle(Theme.marquee)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Theme.marquee, lineWidth: 3))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .overlay(RoundedRectangle(cornerRadius: 3).stroke(Theme.marquee, lineWidth: 2.5))
                             .rotationEffect(.degrees(-12))
-                            .padding(8)
                     }
                 }
-            Text(BossNode.displayName(kind)).font(Theme.title(20))
-            Text("gallery.floor \(floor)").font(Theme.title(14)).opacity(0.8)
-            TicketButton(title: "gallery.practice", size: 18) {
-                onPractice(kind)
+            Text(BossNode.displayName(kind))
+                .font(Theme.title(14))
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+                .minimumScaleFactor(0.8)
+                .frame(height: 36)
+            Text("gallery.floor \(floor)").font(Theme.title(12)).opacity(0.75)
+            TicketButton(title: "bosses.fight", size: 15) {
+                onFight(kind)
             }
         }
-        .padding(14)
+        .padding(10)
         .background(RoundedRectangle(cornerRadius: 14).fill(Theme.cream))
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.ink, lineWidth: 3))
     }

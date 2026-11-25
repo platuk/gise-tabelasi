@@ -8,8 +8,9 @@ struct GameSession: Identifiable {
     /// Boss katından başlanıyorsa ve o boss daha önce yenildiyse dövüş atlanır.
     let bossAlreadyDefeated: Bool
     let character: GameCharacter
-    /// Boss provası: ödül, kupa ve rekor kaydı yok.
-    var practice = false
+    /// Tırmanış, tek boss ya da bütün boss'lar sırayla (boss modlarında ödül ve tırmanış rekoru yok).
+    var mode: PlayMode = .climb
+    var speed: GameSpeed = .normal
 }
 
 struct GameResult: Equatable {
@@ -17,6 +18,10 @@ struct GameResult: Equatable {
     let floor: Int
     let isNewBest: Bool
     let checkpointFloor: Int
+    /// Sıralı boss modu: yenilen boss sayısı ve rekor.
+    var bossRush: Bool = false
+    var bossesBeaten: Int = 0
+    var bestBossRush: Int = 0
 }
 
 struct RootView: View {
@@ -30,11 +35,15 @@ struct RootView: View {
     @AppStorage("selectedCharacter") private var selectedCharacter = 0
     /// En son yenilen boss'un arena katı (1000, 2000, ...).
     @AppStorage("defeatedBossFloor") private var defeatedBossFloor = 0
+    /// Oyun hızı: 0 normal, 1 orta, 2 hızlı.
+    @AppStorage("gameSpeed") private var gameSpeed = 0
+    /// Sıralı boss modunda en çok yenilen boss sayısı.
+    @AppStorage("bestBossRush") private var bestBossRush = 0
     @State private var session: GameSession?
     @State private var result: GameResult?
     @State private var showingHelp = false
     @State private var showingCharacters = false
-    @State private var showingGallery = false
+    @State private var showingBosses = false
     @State private var showingSettings = false
 
     private var character: GameCharacter {
@@ -42,12 +51,14 @@ struct RootView: View {
         return GameCharacter.unlocked(from: unlockedCharacters).contains(chosen) ? chosen : .tipi
     }
 
+    private var speed: GameSpeed { GameSpeed(rawValue: gameSpeed) ?? .normal }
+
     var body: some View {
         ZStack {
             if let session {
                 GameView(
                     session: session,
-                    onGameOver: { score, floor in finish(score: score, floor: floor) },
+                    onGameOver: { summary in finish(summary) },
                     onCheckpoint: { floor in
                         checkpointFloor = max(checkpointFloor, floor)
                         trophyWallet += 1
@@ -65,7 +76,13 @@ struct RootView: View {
                 if let result {
                     GameOverView(
                         result: result,
-                        onRetry: { start(from: result.checkpointFloor) },
+                        onRetry: {
+                            if result.bossRush {
+                                startBossRush()
+                            } else {
+                                start(from: result.checkpointFloor)
+                            }
+                        },
                         onMenu: backToMenu
                     )
                     .transition(.scale(scale: 0.7).combined(with: .opacity))
@@ -77,10 +94,11 @@ struct RootView: View {
                     checkpointFloor: checkpointFloor,
                     wallet: trophyWallet,
                     character: character,
+                    gameSpeed: $gameSpeed,
                     onPlay: { start(from: 0) },
                     onContinue: { start(from: checkpointFloor) },
+                    onBosses: { showingBosses = true },
                     onCharacters: { showingCharacters = true },
-                    onGallery: { showingGallery = true },
                     onSettings: { showingSettings = true },
                     onHelp: { showingHelp = true }
                 )
@@ -93,11 +111,16 @@ struct RootView: View {
         .sheet(isPresented: $showingCharacters) {
             CharacterShopView(wallet: $trophyWallet, unlockedStorage: $unlockedCharacters, selected: $selectedCharacter)
         }
-        .sheet(isPresented: $showingGallery) {
-            BossGalleryView(defeatedBossFloor: defeatedBossFloor) { kind in
-                showingGallery = false
-                practice(kind)
-            }
+        .sheet(isPresented: $showingBosses) {
+            BossGalleryView(defeatedBossFloor: defeatedBossFloor, bestBossRush: bestBossRush,
+                            onFight: { kind in
+                                showingBosses = false
+                                fightBoss(kind)
+                            },
+                            onRush: {
+                                showingBosses = false
+                                startBossRush()
+                            })
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView(onReset: resetProgress)
@@ -114,20 +137,28 @@ struct RootView: View {
         result = nil
         let start = max(0, floor)
         session = GameSession(seed: UInt64.random(in: 1...UInt64.max), startFloor: start,
-                              bossAlreadyDefeated: start > 0 && defeatedBossFloor >= start, character: character)
+                              bossAlreadyDefeated: start > 0 && defeatedBossFloor >= start, character: character, speed: speed)
     }
 
-    /// Provada boss katından başlanır; dövüş hemen başlar.
-    private func practice(_ kind: BossKind) {
+    /// Tek boss: boss katından başlanır, dövüş hemen başlar.
+    private func fightBoss(_ kind: BossKind) {
         result = nil
         session = GameSession(seed: UInt64.random(in: 1...UInt64.max), startFloor: (kind.rawValue + 1) * 1000,
-                              bossAlreadyDefeated: false, character: character, practice: true)
+                              bossAlreadyDefeated: false, character: character, mode: .singleBoss, speed: speed)
+    }
+
+    /// Bütün boss'lar sırayla: ahtapottan bulldoga.
+    private func startBossRush() {
+        result = nil
+        session = GameSession(seed: UInt64.random(in: 1...UInt64.max), startFloor: 1000,
+                              bossAlreadyDefeated: false, character: character, mode: .bossRush, speed: speed)
     }
 
     private func restart(_ current: GameSession) {
         result = nil
         session = GameSession(seed: UInt64.random(in: 1...UInt64.max), startFloor: current.startFloor,
-                              bossAlreadyDefeated: current.bossAlreadyDefeated, character: character, practice: current.practice)
+                              bossAlreadyDefeated: current.bossAlreadyDefeated, character: character,
+                              mode: current.mode, speed: current.speed)
     }
 
     private func backToMenu() {
@@ -135,17 +166,22 @@ struct RootView: View {
         session = nil
     }
 
-    private func finish(score: Int, floor: Int) {
-        if session?.practice == true {
-            // Prova sonu: rekor yok, galeriye dönülür.
+    private func finish(_ summary: GameSummary) {
+        switch session?.mode ?? .climb {
+        case .singleBoss:
+            // Tek dövüş bitti: boss ekranına dönülür.
             backToMenu()
-            showingGallery = true
-            return
+            showingBosses = true
+        case .bossRush:
+            bestBossRush = max(bestBossRush, summary.bossesBeaten)
+            result = GameResult(score: summary.score, floor: summary.floor, isNewBest: false, checkpointFloor: 0,
+                                bossRush: true, bossesBeaten: summary.bossesBeaten, bestBossRush: bestBossRush)
+        case .climb:
+            let isNewBest = summary.score > bestScore
+            if isNewBest { bestScore = summary.score }
+            bestFloor = max(bestFloor, summary.floor)
+            result = GameResult(score: summary.score, floor: summary.floor, isNewBest: isNewBest, checkpointFloor: checkpointFloor)
         }
-        let isNewBest = score > bestScore
-        if isNewBest { bestScore = score }
-        bestFloor = max(bestFloor, floor)
-        result = GameResult(score: score, floor: floor, isNewBest: isNewBest, checkpointFloor: checkpointFloor)
     }
 
     private func resetProgress() {
@@ -156,5 +192,6 @@ struct RootView: View {
         unlockedCharacters = "0"
         selectedCharacter = 0
         defeatedBossFloor = 0
+        bestBossRush = 0
     }
 }

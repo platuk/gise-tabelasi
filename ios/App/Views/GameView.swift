@@ -7,7 +7,7 @@ struct GameView: View {
     @State private var countdown: Int?
     @State private var showingSettings = false
     @Environment(\.scenePhase) private var scenePhase
-    private let onGameOver: (Int, Int) -> Void
+    private let onGameOver: (GameSummary) -> Void
     private let onCheckpoint: (Int) -> Void
     private let onBossDefeated: (Int) -> Void
     private let onRestart: () -> Void
@@ -15,7 +15,7 @@ struct GameView: View {
 
     init(
         session: GameSession,
-        onGameOver: @escaping (Int, Int) -> Void,
+        onGameOver: @escaping (GameSummary) -> Void,
         onCheckpoint: @escaping (Int) -> Void,
         onBossDefeated: @escaping (Int) -> Void,
         onRestart: @escaping () -> Void,
@@ -28,7 +28,7 @@ struct GameView: View {
         self.onMenu = onMenu
         _scene = State(initialValue: TowerScene(
             seed: session.seed, startFloor: session.startFloor, bossAlreadyDefeated: session.bossAlreadyDefeated,
-            character: session.character, practice: session.practice
+            character: session.character, mode: session.mode, speed: session.speed
         ))
     }
 
@@ -36,7 +36,7 @@ struct GameView: View {
         ZStack {
             SpriteView(scene: scene, preferredFramesPerSecond: 60)
                 .onAppear {
-                    scene.onGameOver = { score, floor in onGameOver(score, floor) }
+                    scene.onGameOver = { summary in onGameOver(summary) }
                     scene.onCheckpoint = { floor in onCheckpoint(floor) }
                     scene.onBossDefeated = { floor in onBossDefeated(floor) }
                 }

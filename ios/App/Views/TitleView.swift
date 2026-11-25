@@ -12,10 +12,11 @@ struct TitleView: View {
     let checkpointFloor: Int
     let wallet: Int
     let character: GameCharacter
+    @Binding var gameSpeed: Int
     let onPlay: () -> Void
     let onContinue: () -> Void
+    let onBosses: () -> Void
     let onCharacters: () -> Void
-    let onGallery: () -> Void
     let onSettings: () -> Void
     let onHelp: () -> Void
 
@@ -35,21 +36,28 @@ struct TitleView: View {
                 .ignoresSafeArea()
                 .allowsHitTesting(false)
 
-            VStack(spacing: 14) {
-                Spacer().frame(height: 46)
+            GeometryReader { geo in
+            // Küçük ekranlarda (iPhone SE) alt yazı gizlenir, sahne küçülür.
+            let compact = geo.size.height < 760
+            VStack(spacing: compact ? 9 : 14) {
+                Spacer().frame(height: compact ? 40 : 46)
                 TimelineView(.periodic(from: .now, by: 1.0 / 12.0)) { context in
                     let tick = Int(context.date.timeIntervalSinceReferenceDate * 12)
                     titleCard
+                        .scaleEffect(compact ? 0.8 : 1)
                         .rotationEffect(.degrees(tick % 4 < 2 ? -1.2 : 1.2))
                         .offset(y: tick % 4 < 2 ? 0 : -2)
                 }
-                Text("title.subtitle")
-                    .font(Theme.title(15))
-                    .foregroundStyle(Theme.ink.opacity(0.85))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 50)
+                .frame(height: compact ? 96 : 120)
+                if !compact {
+                    Text("title.subtitle")
+                        .font(Theme.title(15))
+                        .foregroundStyle(Theme.ink.opacity(0.85))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 50)
+                }
 
-                stage
+                stage(height: compact ? 80 : 122)
 
                 trophyShelf
 
@@ -70,6 +78,8 @@ struct TitleView: View {
                 } else {
                     TicketButton(title: "title.play", size: 30, action: onPlay)
                 }
+                TicketButton(title: "title.bossFight", size: 17, filled: false, action: onBosses)
+                speedPicker
                 if bestScore > 0 {
                     Text("title.best \(bestScore) \(bestFloor)")
                         .font(Theme.title(14))
@@ -77,12 +87,13 @@ struct TitleView: View {
                 }
                 HStack(spacing: 8) {
                     PlaqueButton(title: Text("title.characters \(wallet)"), systemImage: "person.crop.circle", action: onCharacters)
-                    PlaqueButton(title: Text("title.gallery"), systemImage: "star.circle", action: onGallery)
                     PlaqueButton(title: Text("title.settings"), systemImage: "gearshape", action: onSettings)
                     PlaqueButton(title: Text("title.help"), systemImage: "questionmark.circle", action: onHelp)
                 }
                 .padding(.horizontal, 54)
-                Spacer().frame(height: 14)
+                Spacer().frame(height: compact ? 8 : 14)
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
             }
             .opacity(showContent ? 1 : 0)
 
@@ -99,6 +110,41 @@ struct TitleView: View {
         }
     }
 
+    /// Oyun hızı: normal, orta, hızlı. Seçim saklanır; tırmanış da boss dövüşleri de bu hızda oynanır.
+    private var speedPicker: some View {
+        HStack(spacing: 6) {
+            Text("speed.title").font(Theme.title(13))
+            ForEach(GameSpeed.allCases, id: \.rawValue) { speed in
+                speedButton(speed)
+            }
+        }
+    }
+
+    private func speedButton(_ speed: GameSpeed) -> some View {
+        let selected = gameSpeed == speed.rawValue
+        return Button {
+            MenuFeedback.tap()
+            gameSpeed = speed.rawValue
+        } label: {
+            Text(speedName(speed))
+                .font(Theme.title(13))
+                .foregroundStyle(selected ? Theme.cream : Theme.ink)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Capsule().fill(selected ? Theme.ink : Theme.cream))
+                .overlay(Capsule().stroke(Theme.ink, lineWidth: 2))
+        }
+        .buttonStyle(PressStyle())
+    }
+
+    private func speedName(_ speed: GameSpeed) -> LocalizedStringKey {
+        switch speed {
+        case .normal: return "speed.normal"
+        case .medium: return "speed.medium"
+        case .fast: return "speed.fast"
+        }
+    }
+
     private var titleCard: some View {
         Text("app.title")
             .font(Theme.title(52))
@@ -112,16 +158,16 @@ struct TitleView: View {
     }
 
     /// Spot ışığında dans eden karakter: tahta sahne kenarı ve ışık halkası.
-    private var stage: some View {
+    private func stage(height: CGFloat) -> some View {
         ZStack(alignment: .bottom) {
             Ellipse()
                 .fill(Theme.bulb.opacity(0.45))
-                .frame(width: 150, height: 26)
+                .frame(width: height * 1.2, height: 26)
                 .offset(y: -4)
             SpriteView(scene: CharacterPreviewScene(character: character, dances: true), options: [.allowsTransparency])
-                .frame(width: 110, height: 122)
+                .frame(width: height * 0.9, height: height)
         }
-        .frame(height: 126)
+        .frame(height: height + 4)
     }
 
     /// Kazanılan kupalar renkli, sıradakiler soluk.
