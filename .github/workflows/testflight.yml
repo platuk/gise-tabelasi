@@ -1,5 +1,7 @@
-# Uygulamayı imzalayıp TestFlight'a yükler. Yalnızca elle çalıştırılır:
-# GitHub > Actions > TestFlight > Run workflow.
+# Uygulamayı imzalayıp TestFlight'a yükler. İki yolla başlar:
+# - GitHub > Actions > TestFlight > Run workflow
+# - "testflight-" ile başlayan bir etiket göndermek:
+#     git tag testflight-3 && git push origin testflight-3
 #
 # Gerekli GitHub "secrets" (Settings > Secrets and variables > Actions):
 #   APPLE_TEAM_ID   : Apple Developer takım kimliği (10 karakter)
@@ -10,6 +12,9 @@ name: TestFlight
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - "testflight-*"
 
 concurrency:
   group: testflight
