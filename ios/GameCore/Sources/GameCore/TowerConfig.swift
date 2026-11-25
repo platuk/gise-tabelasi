@@ -42,9 +42,10 @@ public struct TowerConfig: Equatable, Sendable {
     /// Radyan/saniye.
     public var slidingSpeed: ClosedRange<Double> = 0.9...1.8
 
-    // Bölüm 3: kaygan kirişler
-    public var slipperyFriction: Double = 260
+    // Bölüm 3: kaygan kirişler (çelikten ~4 kat kaygan; durabilmek için daha geniş)
+    public var slipperyFriction: Double = 450
     public var slipperyAcceleration: Double = 1000
+    public var slipperyWidthFactor: Double = 1.35
     /// Ekranda kart gösterilen kat aralığı.
     public var cardInterval: Int = 25
 

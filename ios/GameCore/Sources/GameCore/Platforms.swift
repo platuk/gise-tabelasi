@@ -131,6 +131,10 @@ public struct PlatformGenerator: Sendable {
         }
 
         var amplitude = 0.0
+        if isSlippery {
+            let playWidth = config.playMaxX - config.playMinX
+            width = min(playWidth * 0.6, width * config.slipperyWidthFactor)
+        }
         if isSliding {
             width = max(config.platformMinWidth, width * config.slidingWidthFactor)
             let playWidth = config.playMaxX - config.playMinX
