@@ -322,9 +322,11 @@ final class TowerTests: XCTestCase {
     }
 
     func testSlowWallTouchIsNotAKick() {
-        var sim = TowerSimulation(seed: 1)
+        // Yardımcı el kapalı: yalnızca duvar davranışı ölçülsün (yoksa oyuncuyu duvardan önce kirişe çekebilir).
+        var config = TowerConfig()
+        config.landingAssistMargin = 0
+        var sim = TowerSimulation(config: config, seed: 1)
         sim.isGrounded = false
-        // Alttaki kirişten 70 pt yukarıda: yardımcı el devreye girmesin, yalnızca duvar test edilsin.
         sim.y = 230
         sim.x = sim.config.playMaxX - sim.config.playerWidth / 2 - 1
         sim.vx = 150
