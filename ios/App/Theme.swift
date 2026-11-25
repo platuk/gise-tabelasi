@@ -1,15 +1,15 @@
 import SwiftUI
 
-/// 1930'lar çizgi film afişi paleti: kâğıt, mürekkep, tabela kırmızısı, ampul sarısı.
+/// 1930'lar çizgi film afişi paleti (SwiftUI tarafı). SpriteKit tarafı: `Palette`.
 /// Görseller tamamen özgün olmalı; başka bir oyunun karakteri ya da varlığı kullanılmaz.
 enum Theme {
-    static let paper = Color(red: 0.96, green: 0.91, blue: 0.80)
-    static let ink = Color(red: 0.13, green: 0.10, blue: 0.08)
-    static let marquee = Color(red: 0.55, green: 0.12, blue: 0.10)
-    static let bulbOn = Color(red: 1.00, green: 0.82, blue: 0.30)
-    static let bulbOff = Color(red: 0.45, green: 0.38, blue: 0.30)
+    static let paper = Color(red: 0.95, green: 0.89, blue: 0.75)
+    static let cream = Color(red: 0.98, green: 0.94, blue: 0.84)
+    static let ink = Color(red: 0.12, green: 0.09, blue: 0.07)
+    static let marquee = Color(red: 0.62, green: 0.16, blue: 0.11)
+    static let bulb = Color(red: 1.00, green: 0.82, blue: 0.30)
 
     static func title(_ size: CGFloat) -> Font {
-        .system(size: size, weight: .black, design: .serif)
+        .custom("AmericanTypewriter-Bold", size: size)
     }
 }

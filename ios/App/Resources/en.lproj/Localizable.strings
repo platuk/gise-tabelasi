@@ -1,35 +1,33 @@
-"app.title" = "Box Office Sign";
-"language.picker" = "Puzzle language";
+"app.title" = "Skyscraper\nSwing";
+"title.subtitle" = "A climbing picture from the 1930s";
+"title.play" = "PLAY";
+"title.best %lld %lld" = "Best: %1$lld points · floor %2$lld";
+"title.help" = "How to play";
 
-"level.title %lld" = "Level %lld";
-"level.locked" = "Locked. Finish the previous level to open it.";
-"level.completed" = "Completed";
+"hud.floor %lld" = "FLOOR %lld";
+"hud.score %lld" = "%lld PTS";
+"hud.combo %lld %lld" = "COMBO ×%1$lld · %2$lld FLOORS";
 
-"marquee.hidden" = "Word not found yet";
-"reel.up %lld" = "Turn reel %lld to the previous letter";
-"reel.down %lld" = "Turn reel %lld to the next letter";
+"card.combo %lld" = "%lld-FLOOR COMBO!";
+"card.milestone %lld" = "FLOOR %lld!";
+"card.burn" = "THE FILM IS BURNING!";
 
-"game.hint.start" = "Turn the reels to light up the sign.";
-"game.newWord %@" = "Light on: %@";
-"game.alreadyFound %@" = "%@ is already found.";
-"game.undo" = "Undo";
-"game.complete.title" = "Level complete!";
-"game.complete.next" = "Next level";
-"game.complete.back" = "Back to levels";
-"game.allDone" = "You've finished every level for now.";
-
-"error.loadLevels" = "Levels couldn't be loaded. Try restarting the app.";
-"error.invalidLevel" = "This level couldn't be opened.";
+"gameover.title" = "THE END";
+"gameover.floor %lld" = "Floor reached: %lld";
+"gameover.score %lld" = "Score: %lld";
+"gameover.newBest" = "New record!";
+"gameover.retry" = "Again";
+"gameover.menu" = "Title screen";
 
 "help.title" = "How to play";
 "help.done" = "Done";
 "help.how.title" = "The game";
-"help.how.body" = "Each letter on the sign is a reel. Turn a reel with the arrow buttons or by swiping up or down. When the sign spells a target word, a light turns on. Light every bulb to finish the level.";
-"help.undo.title" = "Undo";
-"help.undo.body" = "Undo turns back your last reel move. Words you found stay found; wrong moves are never punished.";
-"help.locks.title" = "Locked levels";
-"help.locks.body" = "A level opens when you finish the one before it. There is no other way to unlock levels.";
-"help.language.title" = "Puzzle language";
-"help.language.body" = "Pick Turkish or English puzzles at the top right. Each language keeps its own progress; switching never erases it.";
+"help.how.body" = "Climb a skyscraper under construction by jumping from girder to girder, as high as you can. You can pass through girders from below and land on top of them. Girders get narrower as you climb.";
+"help.controls.title" = "Controls";
+"help.controls.body" = "Hold the arrows on the left half of the screen to run, and tap the right half to jump. The faster you run, the higher you jump. Hit a wall and you bounce off it, keeping your speed.";
+"help.combo.title" = "Combo";
+"help.combo.body" = "Jump two or more floors at once to start a combo. Make another multi-floor jump within three seconds to grow it. A combo ends when you jump only one floor, fall down, or run out of time. A combo of at least two jumps scores the number of floors squared.";
+"help.burn.title" = "Burning film";
+"help.burn.body" = "After the fifth floor, the film starts burning from the bottom and keeps speeding up. If the burning edge catches you, the game ends.";
 "help.privacy.title" = "Privacy";
-"help.privacy.body" = "The game works offline. There are no ads, purchases, accounts, or data collection. Your progress is stored only on this device.";
+"help.privacy.body" = "The game works offline. There are no ads, purchases, accounts, or data collection. Your best score is stored only on this device.";

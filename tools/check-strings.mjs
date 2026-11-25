@@ -33,7 +33,8 @@ function swiftFiles(dir) {
   });
 }
 
-const placeholders = (s) => (s.match(/%(lld|@|d)/g) || []).sort().join(",");
+// %lld, %@ ve sıralı biçimleri (%1$lld) aynı türe indirger.
+const placeholders = (s) => (s.match(/%(?:\d+\$)?(?:lld|@|d)/g) || []).map((p) => p.replace(/\d+\$/, "")).sort().join(",");
 const errors = [];
 
 const tables = Object.fromEntries(LANGS.map((l) => [l, parseStrings(join(RES, `${l}.lproj`, "Localizable.strings"))]));

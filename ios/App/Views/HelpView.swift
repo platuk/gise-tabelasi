@@ -6,9 +6,9 @@ struct HelpView: View {
 
     private let sections: [(title: LocalizedStringKey, body: LocalizedStringKey)] = [
         ("help.how.title", "help.how.body"),
-        ("help.undo.title", "help.undo.body"),
-        ("help.locks.title", "help.locks.body"),
-        ("help.language.title", "help.language.body"),
+        ("help.controls.title", "help.controls.body"),
+        ("help.combo.title", "help.combo.body"),
+        ("help.burn.title", "help.burn.body"),
         ("help.privacy.title", "help.privacy.body"),
     ]
 

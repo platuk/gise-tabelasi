@@ -44,10 +44,8 @@ jobs:
       - name: Xcode sürümü
         run: xcodebuild -version
 
-      - name: Bölüm ve metin doğrulama
-        run: |
-          node tools/validate-levels.mjs
-          node tools/check-strings.mjs
+      - name: Metin doğrulama
+        run: node tools/check-strings.mjs
 
       - name: XcodeGen kur ve projeyi üret
         working-directory: ios

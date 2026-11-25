@@ -1,13 +1,10 @@
 import SwiftUI
 
 @main
-struct GiseTabelasiApp: App {
-    @StateObject private var model = AppModel()
-
+struct SkyscraperSwingApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
-                .environmentObject(model)
         }
     }
 }

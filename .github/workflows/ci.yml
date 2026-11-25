@@ -1,5 +1,5 @@
 # Her gönderimde (push) ve elle tetiklemede çalışır.
-# 1) Bölüm ve metin doğrulama (Linux, hızlı)
+# 1) Metin doğrulama (Linux, hızlı)
 # 2) Oyun mantığı testleri: swift test (macOS 26, Xcode 26)
 # 3) iOS uygulamasını simülatör için derleme (macOS 26, imzasız)
 name: CI
@@ -15,15 +15,13 @@ concurrency:
 
 jobs:
   validate:
-    name: Bölüm ve metin doğrulama
+    name: Metin doğrulama
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-      - name: Bölümler
-        run: node tools/validate-levels.mjs
       - name: Metinler
         run: node tools/check-strings.mjs
 

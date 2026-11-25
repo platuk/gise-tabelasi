@@ -1,53 +1,62 @@
-import GameCore
 import SwiftUI
 
+struct GameSession: Identifiable {
+    let id = UUID()
+    let seed: UInt64
+}
+
+struct GameResult: Equatable {
+    let score: Int
+    let floor: Int
+    let isNewBest: Bool
+}
+
 struct RootView: View {
-    @EnvironmentObject private var model: AppModel
-    @State private var path: [Int] = []
+    @AppStorage("bestScore") private var bestScore = 0
+    @AppStorage("bestFloor") private var bestFloor = 0
+    @State private var session: GameSession?
+    @State private var result: GameResult?
     @State private var showingHelp = false
 
     var body: some View {
-        NavigationStack(path: $path) {
-            LevelListView()
-                .navigationTitle(Text("app.title"))
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button {
-                            showingHelp = true
-                        } label: {
-                            Label("help.title", systemImage: "questionmark.circle")
-                        }
-                    }
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Picker("language.picker", selection: languageBinding) {
-                            Text(verbatim: "TR").tag("tr")
-                            Text(verbatim: "EN").tag("en")
-                        }
-                        .pickerStyle(.segmented)
-                        .frame(width: 110)
-                    }
+        ZStack {
+            if let session {
+                GameView(session: session) { score, floor in
+                    finish(score: score, floor: floor)
                 }
-                .navigationDestination(for: Int.self) { id in
-                    if let level = model.pack?.level(withID: id) {
-                        LevelView(level: level, path: $path)
-                            .id("\(model.language)-\(id)")
-                    }
+                .id(session.id)
+                .ignoresSafeArea()
+
+                if let result {
+                    GameOverView(result: result, onRetry: start, onMenu: backToMenu)
+                        .transition(.opacity)
                 }
+            } else {
+                TitleView(bestScore: bestScore, bestFloor: bestFloor, onPlay: start, onHelp: { showingHelp = true })
+            }
         }
+        .animation(.easeOut(duration: 0.2), value: result)
         .sheet(isPresented: $showingHelp) {
             HelpView()
         }
-        .tint(Theme.marquee)
         .preferredColorScheme(.light)
+        .statusBarHidden(true)
     }
 
-    private var languageBinding: Binding<String> {
-        Binding(
-            get: { model.language },
-            set: { newValue in
-                path = []
-                model.setLanguage(newValue)
-            }
-        )
+    private func start() {
+        result = nil
+        session = GameSession(seed: UInt64.random(in: 1...UInt64.max))
+    }
+
+    private func backToMenu() {
+        result = nil
+        session = nil
+    }
+
+    private func finish(score: Int, floor: Int) {
+        let isNewBest = score > bestScore
+        if isNewBest { bestScore = score }
+        bestFloor = max(bestFloor, floor)
+        result = GameResult(score: score, floor: floor, isNewBest: isNewBest)
     }
 }
