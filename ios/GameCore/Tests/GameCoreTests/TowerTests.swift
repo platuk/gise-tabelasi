@@ -275,14 +275,30 @@ final class TowerTests: XCTestCase {
         var sim = TowerSimulation(config: config, seed: seed, startFloor: startFloor)
         var time = 0.0
         while time < seconds && sim.highestFloor < startFloor + floors {
-            // Bir insan gibi: hedef kirişin altına gel, hızını ön görerek fren yap, sakin bir zıplayışla çık.
+            // Bir insan gibi oynar:
+            // - Yerde: hızını ön görerek hedef kirişe yönelir; altına gelince sakin zıplar,
+            //   hedef yandaysa kirişin ucundan düşmeden çapraz zıplar.
+            // - Havada: iniş anındaki konumunu tahmin edip hedefin ortasına yönelir.
             let target = sim.bounds(floor: sim.currentFloor + 1)
             let center = (target.minX + target.maxX) / 2
             let halfWidth = (target.maxX - target.minX) / 2
-            let dx = center - sim.x
-            let lead = dx - sim.vx * 0.2
-            let direction = abs(lead) < 4 ? 0 : (lead > 0 ? 1 : -1)
-            let jump = sim.isGrounded && abs(dx) < halfWidth * 0.8 && abs(sim.vx) < 260
+            var direction = 0
+            var jump = false
+            if sim.isGrounded {
+                let dx = center - sim.x
+                let lead = dx - sim.vx * 0.25
+                direction = abs(lead) < 4 ? 0 : (lead > 0 ? 1 : -1)
+                let current = sim.bounds(floor: sim.currentFloor)
+                let nextX = sim.x + sim.vx * 0.06
+                let atEdge = (dx > 0 && nextX > current.maxX) || (dx < 0 && nextX < current.minX)
+                jump = (abs(dx) < halfWidth * 0.7 && abs(sim.vx) < 200) || atEdge
+            } else {
+                let targetY = Double(sim.currentFloor + 1) * config.floorSpacing
+                let discriminant = sim.vy * sim.vy - 2 * config.gravity * (targetY - sim.y)
+                let timeToLand = discriminant > 0 ? (sim.vy + discriminant.squareRoot()) / config.gravity : 0.2
+                let error = center - (sim.x + sim.vx * timeToLand)
+                direction = abs(error) < 3 ? 0 : (error > 0 ? 1 : -1)
+            }
             _ = sim.step(dt: dt, input: TowerInput(direction: direction, jump: jump))
             time += dt
         }
@@ -304,6 +320,12 @@ final class TowerTests: XCTestCase {
     func testBotCanClimbSlipperyChapter() {
         for seed: UInt64 in [1, 42, 2026] {
             XCTAssertGreaterThanOrEqual(botClimb(seed: seed, startFloor: 200, floors: 20, seconds: 240), 20, "tohum \(seed)")
+        }
+    }
+
+    func testBotCanClimbMixedChapter() {
+        for seed: UInt64 in [1, 42, 2026] {
+            XCTAssertGreaterThanOrEqual(botClimb(seed: seed, startFloor: 300, floors: 20, seconds: 240), 20, "tohum \(seed)")
         }
     }
 }
