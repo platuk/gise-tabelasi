@@ -358,7 +358,8 @@ final class TowerTests: XCTestCase {
         var sim = TowerSimulation(config: config, seed: 1)
         sim.isGrounded = false
         sim.y = 230
-        sim.x = sim.config.playMaxX - sim.config.playerWidth / 2 - 1
+        // Duvara yarım nokta: sakin başlangıç temposunda bile bu adımda duvara değer.
+        sim.x = sim.config.playMaxX - sim.config.playerWidth / 2 - 0.5
         sim.vx = 150
         let events = sim.step(dt: dt, input: TowerInput())
         XCTAssertTrue(events.contains(.wallBounce(side: 1)))
