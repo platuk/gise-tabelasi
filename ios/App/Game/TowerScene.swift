@@ -14,6 +14,8 @@ final class TowerScene: SKScene {
     /// Kupa kazanıldığında hemen çağrılır (kayıt noktası kaydı için): kupanın katı.
     var onCheckpoint: ((Int) -> Void)?
     var onAutoJumpChanged: ((Bool) -> Void)?
+    /// Boss yenildiğinde: arena katı.
+    var onBossDefeated: ((Int) -> Void)?
     /// Açıkken karakter yere değdiği an kendiliğinden zıplar.
     private(set) var autoJump: Bool
 
@@ -35,6 +37,10 @@ final class TowerScene: SKScene {
     private let slowTint = SKSpriteNode(color: SKColor(red: 0.35, green: 0.45, blue: 0.55, alpha: 1), size: .zero)
     /// Diriliş gösterisi sürerken oyun durur.
     private var isRespawning = false
+    private let worldBackground = CartoonWorldBackground()
+    private var octopus: OctopusNode?
+    private var projectileNodes: [Int: ProjectileNode] = [:]
+    private var bossFlashTicks = 0
     private let leftWall = WallNode()
     private let rightWall = WallNode()
     private let hud = HUD()
@@ -61,13 +67,13 @@ final class TowerScene: SKScene {
     private var gameOverSent = false
     private let haptics = Haptics()
 
-    init(seed: UInt64, startFloor: Int, autoJump: Bool, character: GameCharacter) {
+    init(seed: UInt64, startFloor: Int, bossAlreadyDefeated: Bool, autoJump: Bool, character: GameCharacter) {
         let config = TowerConfig()
         self.config = config
         self.autoJump = autoJump
         self.characterStyle = character.style
         self.character = RubberHoseCharacter(style: character.style)
-        self.sim = TowerSimulation(config: config, seed: seed, startFloor: startFloor)
+        self.sim = TowerSimulation(config: config, seed: seed, startFloor: startFloor, bossAlreadyDefeated: bossAlreadyDefeated)
         self.burn = BurnEdge(width: CGFloat(config.worldWidth))
         super.init(size: CGSize(width: 390, height: 844))
         scaleMode = .resizeFill
@@ -118,13 +124,28 @@ final class TowerScene: SKScene {
             slowTint.alpha = 0
             slowTint.zPosition = 950
             cameraNode.addChild(slowTint)
+            // Canlı çizgi film dünyası: her şeyin arkasında, kamera alanında.
+            worldBackground.zPosition = -1000
+            cameraNode.addChild(worldBackground)
         }
         layoutScene()
         syncNodes()
         if !introShown {
             introShown = true
-            showTitleCard(chapterTitle(forFloor: sim.startFloor), big: true)
+            if sim.boss != nil {
+                showBossIntro()
+            } else {
+                showTitleCard(chapterTitle(forFloor: sim.startFloor), big: true)
+            }
         }
+    }
+
+    private func showBossIntro() {
+        let name = String(localized: "boss.name")
+        showTitleCard(String(localized: "card.bossIntro \(name)"), big: true)
+        hud.showBoss(true)
+        haptics.notify(.warning)
+        shake()
     }
 
     override func didChangeSize(_ oldSize: CGSize) {
@@ -149,6 +170,7 @@ final class TowerScene: SKScene {
         cameraNode.addChild(film)
         filmOverlay = film
         slowTint.size = size
+        worldBackground.layout(in: size)
 
         let insets = view?.safeAreaInsets ?? .zero
         hud.layout(in: size, topInset: insets.top)
@@ -191,6 +213,7 @@ final class TowerScene: SKScene {
 
         updateCamera(frameDt)
         syncNodes()
+        worldBackground.update(cameraY: cameraY, dt: frameDt, step: boilStep)
     }
 
     private func onBoilTick() {
@@ -209,6 +232,11 @@ final class TowerScene: SKScene {
         flame.closeSubpath()
         boostFlame.path = flame
         adrenalineAura.setScale(boilStep % 2 == 0 ? 1 : 1.12)
+        if let fight = sim.boss {
+            octopus?.tick(step: boilStep, telegraph: fight.telegraph, phase: fight.phase, flash: bossFlashTicks > 0)
+        }
+        bossFlashTicks = max(0, bossFlashTicks - 1)
+        for node in projectileNodes.values { node.tick(step: boilStep) }
         // Film makinesindeki hafif kare kayması ("gate weave") ve varsa sarsıntı.
         weave = CGPoint(x: boilJitter(step: boilStep, index: 900, amount: 0.9),
                         y: boilJitter(step: boilStep, index: 901, amount: 0.9))
@@ -222,6 +250,10 @@ final class TowerScene: SKScene {
         var target = max(sim.y + height * 0.1, height / 2 - 40)
         if sim.burnActive {
             target = max(target, sim.burnY + height / 2 - 140)
+        }
+        if let fight = sim.boss {
+            // Arena: zemin altta, ahtapot üstte, ikisi de ekranda.
+            target = Double(fight.arenaFloor) * config.floorSpacing + height * 0.42
         }
         cameraY += (target - cameraY) * min(1, dt * 5)
         cameraNode.position = CGPoint(x: CGFloat(config.worldWidth / 2) + weave.x, y: CGFloat(cameraY) + weave.y)
@@ -252,7 +284,49 @@ final class TowerScene: SKScene {
         let comboFraction = sim.combo.map { $0.timeLeft / config.comboWindow }
         hud.update(floor: sim.highestFloor, score: sim.score, comboFraction: comboFraction)
         hud.updatePowerUps([.slowTime: sim.slowRemaining, .adrenaline: sim.adrenalineRemaining, .shield: sim.shieldRemaining])
-        backgroundColor = Palette.sky(forHeight: sim.y)
+
+        // Vurulunca kısa süre yanıp sönme
+        character.alpha = sim.hurtTimer > 0 && boilStep % 2 == 0 ? 0.35 : 1
+        syncBoss()
+    }
+
+    /// Ahtapotu, mermileri ve boss HUD'unu simülasyonla eşitler.
+    private func syncBoss() {
+        guard let fight = sim.boss else {
+            if !projectileNodes.isEmpty {
+                for node in projectileNodes.values { node.removeFromParent() }
+                projectileNodes.removeAll()
+            }
+            return
+        }
+        if octopus == nil {
+            let node = OctopusNode()
+            node.zPosition = 15
+            world.addChild(node)
+            octopus = node
+        }
+        octopus?.position = CGPoint(x: fight.x, y: fight.y)
+        hud.updateBoss(hp: fight.hp, maxHP: fight.maxHP, playerHP: sim.playerHP)
+
+        var alive = Set<Int>()
+        for shot in sim.enemyShots + sim.playerShots {
+            alive.insert(shot.id)
+            let node: ProjectileNode
+            if let existing = projectileNodes[shot.id] {
+                node = existing
+            } else {
+                node = ProjectileNode(kind: shot.kind, radius: CGFloat(shot.radius))
+                node.zPosition = shot.kind == .bullet ? 12 : 16
+                world.addChild(node)
+                projectileNodes[shot.id] = node
+            }
+            node.position = CGPoint(x: shot.x, y: shot.y)
+            if shot.kind == .wave { node.xScale = shot.vx < 0 ? -1 : 1 }
+        }
+        for id in Array(projectileNodes.keys) where !alive.contains(id) {
+            projectileNodes[id]?.removeFromParent()
+            projectileNodes[id] = nil
+        }
     }
 
     /// Görünen katlardaki alınmamış baloncukları gösterir.
@@ -264,6 +338,8 @@ final class TowerScene: SKScene {
             bubbleNodes[floor]?.removeFromParent()
             bubbleNodes[floor] = nil
         }
+        let arena = sim.boss?.arenaFloor ?? Int.max
+        for (floor, node) in bubbleNodes { node.isHidden = floor >= arena }
         for floor in low...high where bubbleNodes[floor] == nil && !sim.collectedBubbles.contains(floor) {
             let platform = sim.platform(floor: floor)
             guard let kind = platform.bubble else { continue }
@@ -294,6 +370,11 @@ final class TowerScene: SKScene {
         for (floor, node) in platformNodes where node.isSliding {
             let bounds = sim.bounds(floor: floor)
             node.position.x = CGFloat((bounds.minX + bounds.maxX) / 2)
+        }
+        // Boss dövüşünde arenanın üstündeki kirişler gizlenir (basılamazlar).
+        let arena = sim.boss?.arenaFloor ?? Int.max
+        for (floor, node) in platformNodes {
+            node.isHidden = floor > arena
         }
     }
 
@@ -347,6 +428,30 @@ final class TowerScene: SKScene {
                 haptics.impact(.heavy)
             case .respawned:
                 break
+            case .bossStarted:
+                showBossIntro()
+            case .bossAttackWarning:
+                haptics.impact(.light)
+            case .bossAttack(let attack):
+                if attack == .wave || attack == .rain { shake() }
+            case .bossHit:
+                bossFlashTicks = 1
+            case .playerHit:
+                haptics.notify(.error)
+                shake()
+                spawnStars(at: CGPoint(x: sim.x, y: sim.y + 30))
+            case .bossDefeated(_, let floor):
+                if let node = octopus {
+                    node.playDefeat(in: world)
+                    octopus = nil
+                }
+                hud.showBoss(false)
+                showTitleCard(String(localized: "card.bossDefeated"), big: true)
+                showTitleCard(String(localized: "card.bossReward \(bossRewardCups)"), big: false)
+                showTitleCard(chapterTitle(forFloor: floor + 1), big: true)
+                haptics.notify(.success)
+                shake()
+                onBossDefeated?(floor)
             case .comboExtended(let jumps, let floors):
                 hud.showCombo(jumps: jumps, floors: floors)
             case .comboEnded(_, let floors, let points):
@@ -363,7 +468,10 @@ final class TowerScene: SKScene {
                     showTitleCard(String(localized: "card.trophy \(tier.name)"), big: true)
                     spawnTrophy(tier)
                 }
-                showTitleCard(chapterTitle(forFloor: floor), big: true)
+                // Boss katında bölüm kartı zaferden sonra gelir.
+                if !config.isBossFloor(floor) {
+                    showTitleCard(chapterTitle(forFloor: floor), big: true)
+                }
                 haptics.notify(.success)
                 shake()
                 onCheckpoint?(floor)
@@ -379,6 +487,10 @@ final class TowerScene: SKScene {
             }
         }
     }
+
+    /// Boss yenilince cüzdana eklenen kupa sayısı (RootView aynı değeri kullanır).
+    static let bossRewardCups = 3
+    private var bossRewardCups: Int { Self.bossRewardCups }
 
     private func powerUpTitle(_ kind: PowerUp) -> String {
         switch kind {

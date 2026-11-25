@@ -15,6 +15,14 @@
 - Oyun başına bir bedava diriliş: hayalet süzülür, iris, son kirişe dönüş, 3 sn kalkan.
 - Doğrulama: bot 7 kulede tüm bölümleri geçiyor (JS kopyası + Swift testleri).
 
+## Bölümler ve boss (1000 kat)
+
+- Bölüm = 1000 kat; kirişler bölüm başında geniş (200), sonuna doğru daralır (80). Kupa ve kayıt noktası her 100 katta.
+- Her bölüm sonunda Kaptan Mürekkep (ahtapot): film durur, arena kilitlenir, oyuncu otomatik ateş eder, 3 can.
+  Saldırılar uyarılıdır (kollar kalkar, parlar). Aşama 1: yelpaze + dalga; aşama 2: + nişanlı mürekkep; aşama 3: + yağmur, daha hızlı.
+  Zafer: +500×n puan, +3 kupa, sonraki bölüm. Dövüşte ölünürse sonraki oyun dövüşten başlar.
+- Arka plan: kodla "suluboya" boyanan katmanlar (gökyüzü bantları, güneş/ay/yıldızlar, şehir, iki bulut katmanı, kuşlar, zeplin).
+
 ## Önceki çalışma adı: Gökdelen Swing
 
 1930'ların lastik hortum çizgi filmleri tarzında, sonsuz yukarı tırmanma oyunu. İlham: Icy Tower'ın hız-zıplama-kombo çekirdeği; görsel dil: dönemin çizgi filmleri. Hiçbir oyunun karakteri, logosu, menüsü ya da adı kullanılmaz.

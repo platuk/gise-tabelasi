@@ -14,6 +14,7 @@ struct HelpView: View {
         ("help.trophy.title", "help.trophy.body"),
         ("help.characters.title", "help.characters.body"),
         ("help.chapters.title", "help.chapters.body"),
+        ("help.boss.title", "help.boss.body"),
         ("help.combo.title", "help.combo.body"),
         ("help.burn.title", "help.burn.body"),
         ("help.privacy.title", "help.privacy.body"),

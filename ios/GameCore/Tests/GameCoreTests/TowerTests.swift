@@ -182,13 +182,17 @@ final class TowerTests: XCTestCase {
 
     func testChapterKinds() {
         var generator = PlatformGenerator(config: TowerConfig(), seed: 5)
-        for floor in 1...99 { XCTAssertEqual(generator.platform(floor: floor).kind, .steel, "kat \(floor)") }
-        for floor in 101...199 {
+        for floor in 1...999 where floor % 100 != 0 {
+            XCTAssertEqual(generator.platform(floor: floor).kind, .steel, "kat \(floor)")
+        }
+        for floor in 1001...1999 where floor % 100 != 0 {
             guard case .sliding = generator.platform(floor: floor).kind else { return XCTFail("kat \(floor) kaymalı") }
         }
-        for floor in 201...299 { XCTAssertEqual(generator.platform(floor: floor).kind, .slippery, "kat \(floor)") }
+        for floor in 2001...2999 where floor % 100 != 0 {
+            XCTAssertEqual(generator.platform(floor: floor).kind, .slippery, "kat \(floor)")
+        }
         var kinds = Set<String>()
-        for floor in 301...399 {
+        for floor in 3001...3199 where floor % 100 != 0 {
             switch generator.platform(floor: floor).kind {
             case .steel: kinds.insert("steel")
             case .sliding: kinds.insert("sliding")
@@ -196,11 +200,13 @@ final class TowerTests: XCTestCase {
             }
         }
         XCTAssertEqual(kinds, ["steel", "sliding", "slippery"])
-        for floor in [100, 200, 300, 400] {
+        for floor in [100, 500, 1000, 2000, 3000] {
             let milestone = generator.platform(floor: floor)
             XCTAssertTrue(milestone.isMilestone)
             XCTAssertEqual(milestone.kind, .steel)
         }
+        // Her bölüm geniş kirişlerle başlar, sonuna doğru daralır.
+        XCTAssertGreaterThan(generator.platform(floor: 1001).width, generator.platform(floor: 1990).width)
     }
 
     func testTrophyEveryHundredFloorsReplacesMilestoneCard() {
@@ -234,9 +240,9 @@ final class TowerTests: XCTestCase {
         steel.x = steel.platform(floor: 50).centerX
         steel.land(onFloor: 50)
         steel.vx = 200
-        var slippery = TowerSimulation(seed: 9)
-        slippery.x = slippery.platform(floor: 250).centerX
-        slippery.land(onFloor: 250)
+        var slippery = TowerSimulation(seed: 9, startFloor: 2200)
+        slippery.x = slippery.platform(floor: 2250).centerX
+        slippery.land(onFloor: 2250)
         slippery.vx = 200
         for _ in 0..<15 {
             _ = steel.step(dt: dt, input: TowerInput())
@@ -248,8 +254,8 @@ final class TowerTests: XCTestCase {
     }
 
     func testSlidingGirderCarriesPlayer() {
-        var sim = TowerSimulation(seed: 11)
-        let floor = 150
+        var sim = TowerSimulation(seed: 11, startFloor: 1100)
+        let floor = 1150
         let start = sim.bounds(floor: floor)
         sim.x = (start.minX + start.maxX) / 2
         sim.land(onFloor: floor)
@@ -452,7 +458,8 @@ final class TowerTests: XCTestCase {
     private func botClimb(seed: UInt64, startFloor: Int, floors: Int, seconds: Double) -> Int {
         var config = TowerConfig()
         config.burnStartFloor = .max
-        var sim = TowerSimulation(config: config, seed: seed, startFloor: startFloor)
+        // Bölüm başından (boss katından) başlanıyorsa boss yenilmiş sayılır; burada yalnızca tırmanış ölçülür.
+        var sim = TowerSimulation(config: config, seed: seed, startFloor: startFloor, bossAlreadyDefeated: true)
         var time = 0.0
         while time < seconds && sim.highestFloor < startFloor + floors {
             // Bir insan gibi oynar:
@@ -485,27 +492,157 @@ final class TowerTests: XCTestCase {
         return sim.highestFloor - startFloor
     }
 
-    func testBotCanClimbSteelChapter() {
-        for seed: UInt64 in [1, 42, 2026] {
-            XCTAssertGreaterThanOrEqual(botClimb(seed: seed, startFloor: 0, floors: 40, seconds: 180), 40, "tohum \(seed)")
+    /// Her bölümün hem geniş başı hem dar sonu denenir.
+    private func assertBotClimbs(from starts: [Int], floors: Int, file: StaticString = #filePath, line: UInt = #line) {
+        for start in starts {
+            for seed: UInt64 in [1, 42, 2026] {
+                XCTAssertGreaterThanOrEqual(botClimb(seed: seed, startFloor: start, floors: floors, seconds: 240), floors,
+                                            "kat \(start) tohum \(seed)", file: file, line: line)
+            }
         }
+    }
+
+    func testBotCanClimbSteelChapter() {
+        XCTAssertGreaterThanOrEqual(botClimb(seed: 1, startFloor: 0, floors: 40, seconds: 180), 40)
+        assertBotClimbs(from: [0, 900], floors: 20)
     }
 
     func testBotCanClimbSlidingChapter() {
-        for seed: UInt64 in [1, 42, 2026] {
-            XCTAssertGreaterThanOrEqual(botClimb(seed: seed, startFloor: 100, floors: 20, seconds: 240), 20, "tohum \(seed)")
-        }
+        assertBotClimbs(from: [1000, 1900], floors: 20)
     }
 
     func testBotCanClimbSlipperyChapter() {
-        for seed: UInt64 in [1, 42, 2026] {
-            XCTAssertGreaterThanOrEqual(botClimb(seed: seed, startFloor: 200, floors: 20, seconds: 240), 20, "tohum \(seed)")
-        }
+        assertBotClimbs(from: [2000, 2900], floors: 20)
     }
 
     func testBotCanClimbMixedChapter() {
-        for seed: UInt64 in [1, 42, 2026] {
-            XCTAssertGreaterThanOrEqual(botClimb(seed: seed, startFloor: 300, floors: 20, seconds: 240), 20, "tohum \(seed)")
+        assertBotClimbs(from: [3000, 3500], floors: 20)
+    }
+
+    // MARK: Boss dövüşü
+
+    func testBossStartsAtThousandAndLocksArena() {
+        var sim = TowerSimulation(seed: 4, startFloor: 900)
+        let events = sim.land(onFloor: 1003) // sınırın üstünden atlanarak geçildi
+        XCTAssertTrue(events.contains(.bossStarted(number: 1)))
+        XCTAssertTrue(events.contains(.trophyEarned(floor: 1000)))
+        let fight = try? XCTUnwrap(sim.boss)
+        XCTAssertEqual(fight?.arenaFloor, 1000)
+        XCTAssertEqual(fight?.hp, sim.config.bossBaseHP)
+        // Oyuncu arenaya indirildi.
+        XCTAssertEqual(sim.currentFloor, 1000)
+        XCTAssertEqual(sim.y, 1000 * sim.config.floorSpacing)
+        XCTAssertEqual(sim.playerHP, sim.config.playerMaxHP)
+        // Arenanın üstündeki kirişlere basılamaz: yukarıdan düşen oyuncu arenaya iner.
+        sim.isGrounded = false
+        sim.y = 1003 * sim.config.floorSpacing + 10
+        sim.x = sim.platform(floor: 1003).centerX
+        sim.vy = -10
+        var landed: Int?
+        for _ in 0..<240 {
+            for event in sim.step(dt: dt, input: TowerInput()) {
+                if case .landed(let floor, _) = event { landed = floor }
+            }
+            if landed != nil { break }
         }
+        XCTAssertEqual(landed, 1000)
+    }
+
+    func testStartingAtBossFloorStartsFightUnlessDefeated() {
+        let fresh = TowerSimulation(seed: 4, startFloor: 2000)
+        XCTAssertEqual(fresh.boss?.number, 2)
+        XCTAssertEqual(fresh.boss?.maxHP, fresh.config.bossBaseHP + fresh.config.bossHPPerChapter)
+        let skipped = TowerSimulation(seed: 4, startFloor: 2000, bossAlreadyDefeated: true)
+        XCTAssertNil(skipped.boss)
+    }
+
+    func testBurnIsPausedDuringBoss() {
+        var sim = TowerSimulation(seed: 4, startFloor: 1000)
+        for _ in 0..<(120 * 5) {
+            let events = sim.step(dt: dt, input: TowerInput())
+            XCTAssertFalse(events.contains(.burnStarted))
+            XCTAssertFalse(events.contains(.died) && sim.burnY > sim.y)
+        }
+        XCTAssertLessThan(sim.burnY, sim.y - 1000)
+    }
+
+    func testBossTelegraphsBeforeAttacking() {
+        var sim = TowerSimulation(seed: 4, startFloor: 1000)
+        sim.shieldRemaining = 1_000 // yalnızca saldırı sırası ölçülsün
+        var order: [String] = []
+        for _ in 0..<(120 * 8) {
+            for event in sim.step(dt: dt, input: TowerInput()) {
+                switch event {
+                case .bossAttackWarning(let attack): order.append("uyari-\(attack.rawValue)")
+                case .bossAttack(let attack): order.append("atis-\(attack.rawValue)")
+                default: break
+                }
+            }
+        }
+        XCTAssertGreaterThanOrEqual(order.count, 4)
+        // Her atıştan hemen önce aynı saldırının uyarısı gelir.
+        for (index, entry) in order.enumerated() where entry.hasPrefix("atis-") {
+            XCTAssertGreaterThan(index, 0)
+            XCTAssertEqual(order[index - 1], entry.replacingOccurrences(of: "atis-", with: "uyari-"))
+        }
+    }
+
+    func testAutoFireDamagesBossWhenUnderIt() {
+        var sim = TowerSimulation(seed: 4, startFloor: 1000)
+        sim.shieldRemaining = 1_000
+        let startHP = sim.boss?.hp ?? 0
+        for _ in 0..<(120 * 4) {
+            if let fight = sim.boss { sim.x = fight.x }
+            _ = sim.step(dt: dt, input: TowerInput())
+        }
+        XCTAssertLessThan(sim.boss?.hp ?? 0, startHP - 8)
+    }
+
+    func testBossShotHurtsPlayerThenBriefInvulnerability() {
+        var sim = TowerSimulation(seed: 4, startFloor: 1000)
+        let body = (x: sim.x, y: sim.y + sim.config.playerHeight / 2)
+        sim.enemyShots = [
+            Projectile(id: 900, kind: .ink, x: body.x, y: body.y, vx: 0, vy: 0, radius: 11),
+            Projectile(id: 901, kind: .ink, x: body.x, y: body.y + 2, vx: 0, vy: 0, radius: 11),
+        ]
+        let events = sim.step(dt: dt, input: TowerInput())
+        XCTAssertTrue(events.contains(.playerHit(hp: sim.config.playerMaxHP - 1)))
+        XCTAssertEqual(sim.playerHP, sim.config.playerMaxHP - 1)
+        XCTAssertGreaterThan(sim.hurtTimer, 0)
+    }
+
+    func testLosingAllHealthKillsAndRespawnRestoresArena() {
+        var sim = TowerSimulation(seed: 4, startFloor: 1000)
+        sim.playerHP = 1
+        sim.enemyShots = [Projectile(id: 1, kind: .fireball, x: sim.x, y: sim.y + 22, vx: 0, vy: 0, radius: 12)]
+        XCTAssertTrue(sim.step(dt: dt, input: TowerInput()).contains(.died))
+        XCTAssertTrue(sim.canRespawn)
+        let bossHP = sim.boss?.hp
+        XCTAssertEqual(sim.respawn(), [.respawned(floor: 1000)])
+        XCTAssertEqual(sim.playerHP, sim.config.playerMaxHP)
+        XCTAssertEqual(sim.boss?.hp, bossHP)
+        XCTAssertTrue(sim.enemyShots.isEmpty)
+    }
+
+    func testBossCanBeDefeatedAndClimbingResumes() {
+        var sim = TowerSimulation(seed: 4, startFloor: 1000)
+        sim.shieldRemaining = 10_000
+        var defeated: (Int, Int)?
+        for _ in 0..<(120 * 120) {
+            if let fight = sim.boss { sim.x = fight.x }
+            for event in sim.step(dt: dt, input: TowerInput()) {
+                if case .bossDefeated(let number, let floor) = event { defeated = (number, floor) }
+            }
+            if defeated != nil { break }
+        }
+        XCTAssertEqual(defeated?.0, 1)
+        XCTAssertEqual(defeated?.1, 1000)
+        XCTAssertNil(sim.boss)
+        XCTAssertTrue(sim.enemyShots.isEmpty)
+        XCTAssertEqual(sim.defeatedBossFloor, 1000)
+        XCTAssertGreaterThanOrEqual(sim.score, sim.config.bossDefeatBonus)
+        // Artık arenanın üstündeki kirişlere basılabilir.
+        XCTAssertTrue(sim.land(onFloor: 1001).contains(.landed(floor: 1001, floorsClimbed: 1)))
+        XCTAssertNil(sim.boss)
     }
 }

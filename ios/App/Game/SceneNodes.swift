@@ -242,10 +242,13 @@ final class FilmOverlay: SKSpriteNode {
 
         float flicker = (filmHash(vec2(t, 9.3)) - 0.5) * 0.08;
 
-        float dark = clamp(vignette * 0.5 + max(-grain, 0.0) * 0.22 + dust * 0.7 + max(flicker, 0.0), 0.0, 0.85);
-        float light = clamp(max(grain, 0.0) * 0.12 + scratch * 0.45 + max(-flicker, 0.0), 0.0, 0.5);
-        float alpha = clamp(dark + light, 0.0, 0.9);
-        gl_FragColor = vec4(vec3(1.0, 0.96, 0.86) * light, alpha);
+        // Hafif tutulur: film hissi versin ama renkleri griye boğmasın.
+        float dark = clamp(vignette * 0.26 + max(-grain, 0.0) * 0.08 + dust * 0.55 + max(flicker, 0.0) * 0.5, 0.0, 0.6);
+        float light = clamp(max(grain, 0.0) * 0.05 + scratch * 0.35 + max(-flicker, 0.0) * 0.4, 0.0, 0.4);
+        float alpha = clamp(dark + light, 0.0, 0.7);
+        // Koyu kısım sıcak kahve (sepya), gri değil.
+        vec3 tint = mix(vec3(0.20, 0.11, 0.05), vec3(1.0, 0.96, 0.86), light / max(alpha, 0.001));
+        gl_FragColor = vec4(tint * alpha, alpha);
     }
     """
 }
@@ -260,6 +263,13 @@ final class HUD: SKNode {
     /// Etkin baloncukların göstergesi: ikon + kalan saniye.
     private var powerUpSlots: [PowerUp: (node: SKNode, label: SKLabelNode)] = [:]
     private var powerUpRowY: CGFloat = 0
+    // Boss dövüşü: can çubuğu ve oyuncunun kalpleri
+    private let bossPanel = SKNode()
+    private let bossName = HUD.label(size: 15)
+    private let bossBarBack = SKShapeNode()
+    private let bossBar = SKShapeNode()
+    private let bossBarWidth: CGFloat = 230
+    private var hearts: [SKShapeNode] = []
     private var shownFloor = -1
     private var shownScore = -1
     private let barWidth: CGFloat = 150
@@ -291,7 +301,44 @@ final class HUD: SKNode {
             addChild(slot)
             powerUpSlots[kind] = (slot, label)
         }
+        bossName.text = String(localized: "boss.name")
+        bossBarBack.path = CGPath(roundedRect: CGRect(x: -bossBarWidth / 2, y: -7, width: bossBarWidth, height: 14),
+                                  cornerWidth: 6, cornerHeight: 6, transform: nil)
+        bossBarBack.fillColor = Palette.cream
+        bossBarBack.strokeColor = Palette.ink
+        bossBarBack.lineWidth = 3
+        bossBar.fillColor = SKColor(red: 0.58, green: 0.26, blue: 0.64, alpha: 1)
+        bossBar.strokeColor = .clear
+        bossName.position = CGPoint(x: 0, y: 18)
+        bossPanel.addChild(bossName)
+        bossPanel.addChild(bossBarBack)
+        bossPanel.addChild(bossBar)
+        bossPanel.isHidden = true
+        addChild(bossPanel)
+        for _ in 0..<3 {
+            let heart = SKShapeNode(path: HeartShape.path(size: 22))
+            heart.fillColor = SKColor(red: 0.86, green: 0.18, blue: 0.22, alpha: 1)
+            heart.strokeColor = Palette.ink
+            heart.lineWidth = 2.5
+            heart.isHidden = true
+            hearts.append(heart)
+            addChild(heart)
+        }
         hideCombo()
+    }
+
+    func showBoss(_ visible: Bool) {
+        bossPanel.isHidden = !visible
+        for heart in hearts { heart.isHidden = !visible }
+    }
+
+    func updateBoss(hp: Int, maxHP: Int, playerHP: Int) {
+        let fraction = CGFloat(max(0, hp)) / CGFloat(max(1, maxHP))
+        bossBar.path = CGPath(roundedRect: CGRect(x: -bossBarWidth / 2 + 2, y: -5, width: max(0.5, (bossBarWidth - 4) * fraction), height: 10),
+                              cornerWidth: 4, cornerHeight: 4, transform: nil)
+        for (index, heart) in hearts.enumerated() {
+            heart.alpha = index < playerHP ? 1 : 0.2
+        }
     }
 
     required init?(coder aDecoder: NSCoder) { return nil }
@@ -304,6 +351,10 @@ final class HUD: SKNode {
         comboBarBack.position = CGPoint(x: 0, y: top - 56)
         comboBar.position = comboBarBack.position
         powerUpRowY = top - 84
+        bossPanel.position = CGPoint(x: 0, y: top - 44)
+        for (index, heart) in hearts.enumerated() {
+            heart.position = CGPoint(x: -size.width / 2 + 34 + CGFloat(index) * 28, y: top - 34)
+        }
     }
 
     /// Etkin baloncuk sürelerini gösterir; süresi bitenler gizlenir.

@@ -45,6 +45,14 @@ public enum TowerEvent: Equatable, Sendable {
     case burnStarted
     case died
     case respawned(floor: Int)
+    /// Bölüm sonu: ahtapot sahneye çıktı.
+    case bossStarted(number: Int)
+    /// Ahtapot kollarını kaldırdı: saldırı geliyor.
+    case bossAttackWarning(BossAttack)
+    case bossAttack(BossAttack)
+    case bossHit(hp: Int)
+    case playerHit(hp: Int)
+    case bossDefeated(number: Int, floor: Int)
 }
 
 /// Oyunun tüm kuralları. Arayüzden bağımsız, sabit zaman adımlı, tamamen deterministik.
@@ -66,7 +74,21 @@ public enum TowerEvent: Equatable, Sendable {
 public struct TowerSimulation: Sendable {
     public let config: TowerConfig
     public let startFloor: Int
+    let seed: UInt64
     private var generator: PlatformGenerator
+
+    // Boss dövüşü (Boss.swift)
+    public internal(set) var boss: BossFight?
+    public internal(set) var enemyShots: [Projectile] = []
+    public internal(set) var playerShots: [Projectile] = []
+    public internal(set) var playerHP: Int
+    public internal(set) var hurtTimer: Double = 0
+    /// En son yenilen boss'un arena katı (0: hiç).
+    public internal(set) var defeatedBossFloor: Int
+    public internal(set) var bonusPoints = 0
+    var fireTimer: Double = 0
+    var projectileCounter = 0
+    var bossRNG = SplitMix64(seed: 0)
 
     /// Oyuncunun yatay merkezi.
     public internal(set) var x: Double
@@ -100,9 +122,11 @@ public struct TowerSimulation: Sendable {
     private var jumpBuffer: Double = 0
     private var burnElapsed: Double = 0
 
-    /// `startFloor`: kayıt noktasından başlamak için (ör. 100, 200). Kat 0'dan başlamak için 0.
-    public init(config: TowerConfig = TowerConfig(), seed: UInt64, startFloor: Int = 0) {
+    /// `startFloor`: kayıt noktasından başlamak için (ör. 100, 1000). Kat 0'dan başlamak için 0.
+    /// Bir boss katından başlanırsa dövüş hemen başlar; `bossAlreadyDefeated` ise atlanır.
+    public init(config: TowerConfig = TowerConfig(), seed: UInt64, startFloor: Int = 0, bossAlreadyDefeated: Bool = false) {
         self.config = config
+        self.seed = seed
         var generator = PlatformGenerator(config: config, seed: seed)
         let start = generator.platform(floor: max(0, startFloor))
         self.generator = generator
@@ -112,9 +136,14 @@ public struct TowerSimulation: Sendable {
         self.currentFloor = start.floor
         self.highestFloor = start.floor
         self.burnY = start.y - config.burnStartDistance
+        self.playerHP = config.playerMaxHP
+        self.defeatedBossFloor = bossAlreadyDefeated ? start.floor : 0
+        if config.isBossFloor(start.floor) && !bossAlreadyDefeated {
+            _ = startBoss(arenaFloor: start.floor)
+        }
     }
 
-    public var score: Int { highestFloor * 10 + comboPoints }
+    public var score: Int { highestFloor * 10 + comboPoints + bonusPoints }
 
     /// Şu ana kadar kazanılan en yüksek kupanın katı (kayıt noktası). Hiç yoksa 0.
     public var checkpointFloor: Int {
@@ -262,8 +291,10 @@ public struct TowerSimulation: Sendable {
         }
 
         // İniş: düşerken geçilen kirişlerden en üsttekine basılır.
+        // Boss dövüşünde arenanın üstündeki kirişlere basılamaz (boss atlanamaz).
         if !isGrounded && vy <= 0 {
-            let top = Int((previousY / config.floorSpacing).rounded(.down))
+            let ceiling = boss?.arenaFloor ?? Int.max
+            let top = min(ceiling, Int((previousY / config.floorSpacing).rounded(.down)))
             let bottom = max(0, Int((y / config.floorSpacing).rounded(.up)))
             if top >= bottom {
                 for floor in stride(from: top, through: bottom, by: -1) {
@@ -274,6 +305,11 @@ public struct TowerSimulation: Sendable {
                     }
                 }
             }
+        }
+
+        if boss != nil {
+            events += stepBoss(dt: dt)
+            return events
         }
 
         events += collectBubbles()
@@ -300,6 +336,21 @@ public struct TowerSimulation: Sendable {
         boost = nil
         combo = nil
         wallKickGuiding = false
+        if let fight = boss {
+            // Boss dövüşünde: arenaya geri dön, can dolar, havadaki mermiler temizlenir; boss'un canı aynı kalır.
+            let arena = platform(floor: fight.arenaFloor)
+            currentFloor = fight.arenaFloor
+            x = arena.centerX
+            y = arena.y
+            vx = 0
+            vy = 0
+            isGrounded = true
+            playerHP = config.playerMaxHP
+            hurtTimer = 0
+            enemyShots = []
+            shieldRemaining = config.respawnShield
+            return [.respawned(floor: fight.arenaFloor)]
+        }
         let floor = max(startFloor, currentFloor)
         let (minX, maxX) = bounds(floor: floor)
         x = (minX + maxX) / 2
@@ -351,6 +402,12 @@ public struct TowerSimulation: Sendable {
             let card = floor / cardInterval * cardInterval
             if floor / cardInterval > previous / cardInterval && !(trophyEarned && card % chapterLength == 0) {
                 events.append(.newMilestone(floor: card))
+            }
+
+            // Bölüm sınırı (1000, 2000, ...) geçildiyse boss dövüşü; atlanarak geçilse bile arenaya inilir.
+            let bossFloor = floor / max(1, config.chapterLength) * max(1, config.chapterLength)
+            if boss == nil && config.isBossFloor(bossFloor) && bossFloor > previous && bossFloor > defeatedBossFloor {
+                events += startBoss(arenaFloor: bossFloor)
             }
         }
         return events
@@ -416,6 +473,7 @@ public struct TowerSimulation: Sendable {
     }
 
     private mutating func stepBurn(dt: Double) -> [TowerEvent] {
+        guard boss == nil else { return [] }
         var events: [TowerEvent] = []
         if !burnActive && highestFloor - startFloor >= config.burnStartFloor {
             burnActive = true

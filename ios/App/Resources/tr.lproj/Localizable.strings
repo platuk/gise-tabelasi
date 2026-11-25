@@ -79,7 +79,13 @@
 "help.trophy.title" = "Kupalar ve kayıt noktası";
 "help.trophy.body" = "Her 100 katta bir kupa kazanırsın: Bronz, Gümüş, Altın, Elmas, sonra Efsane. Kupayı kazandığın kat kayıt noktan olur; bir sonraki oyuna istersen oradan başlarsın. Baştan başlamak için ana ekrandaki \"Baştan başla\" düğmesini kullan.";
 "help.chapters.title" = "Bölümler";
-"help.chapters.body" = "Her 100 katta kirişler değişir. Kat 0-99: çelik kirişler. Kat 100-199: kısa ve sağa sola kayan kirişler; üzerindeyken seni de taşırlar. Kat 200-299: kaygan kirişler; durmak zordur. Kat 300 ve sonrası: hepsi karışık.";
+"help.chapters.body" = "Her bölüm 1000 kattır; kirişler bölüm başında geniştir, sona doğru daralır. Kat 0-999: çelik kirişler. Kat 1000-1999: kısa ve sağa sola kayan kirişler; üzerindeyken seni de taşırlar. Kat 2000-2999: kaygan kirişler; durmak zordur. Kat 3000 ve sonrası: hepsi karışık.";
+"help.boss.title" = "Boss: Kaptan Mürekkep";
+"help.boss.body" = "Her bölümün sonunda (kat 1000, 2000, ...) dev ahtapot Kaptan Mürekkep seni bekler. Dövüş boyunca yanan film durur ve üstteki kirişlere çıkılamaz. Karakterin kendiliğinden yukarı ateş eder; ahtapotun altında kalarak onu vurursun. Ahtapot her saldırıdan önce kollarını kaldırıp parlar: yelpaze ateş topları, sana nişanlı mürekkep, zeminden gelen dalga (üstünden zıpla) ve mürekkep yağmuru. Üç canın var; vurulunca kısa süre dokunulmaz olursun. Ahtapotu yenince 3 kupa kazanır ve yeni bölüme geçersin. Dövüşte ölürsen sonraki oyun dövüşten başlar.";
+"boss.name" = "KAPTAN MÜREKKEP";
+"card.bossIntro %@" = "BÖLÜM SONU: %@!";
+"card.bossDefeated" = "YENDİN!";
+"card.bossReward %lld" = "+%lld KUPA";
 "help.combo.title" = "Kombo";
 "help.combo.body" = "Tek zıplayışta iki ya da daha fazla kat atlarsan kombo başlar. Üç saniye içinde yine çok katlı bir zıplayış yaparsan kombo büyür. Tek kat atlarsan, aşağı düşersen ya da süre dolarsa kombo biter. En az iki zıplayışlık kombo, atlanan kat sayısının karesi kadar puan verir.";
 "help.burn.title" = "Yanan film";

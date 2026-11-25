@@ -79,7 +79,13 @@
 "help.trophy.title" = "Trophies and checkpoints";
 "help.trophy.body" = "Every 100 floors you win a trophy: Bronze, Silver, Gold, Diamond, then Legend. The floor where you win it becomes your checkpoint, and your next game can start there. To start from the bottom, use \"Start over\" on the title screen.";
 "help.chapters.title" = "Chapters";
-"help.chapters.body" = "The girders change every 100 floors. Floors 0-99: steel girders. Floors 100-199: short girders that slide left and right and carry you with them. Floors 200-299: slippery girders that are hard to stop on. Floor 300 and up: all of them mixed.";
+"help.chapters.body" = "Each chapter is 1000 floors; girders start wide and get narrower toward the end. Floors 0-999: steel girders. Floors 1000-1999: short girders that slide left and right and carry you with them. Floors 2000-2999: slippery girders that are hard to stop on. Floor 3000 and up: all of them mixed.";
+"help.boss.title" = "Boss: Captain Inkbeard";
+"help.boss.body" = "At the end of every chapter (floor 1000, 2000, ...) the giant octopus Captain Inkbeard is waiting. During the fight the burning film stops and you cannot climb to the girders above. Your character fires upward on its own; stay under the octopus to hit it. Before every attack it raises its arms and glows: a fan of fireballs, ink aimed at you, a wave along the floor (jump over it), and ink rain. You have three hearts; after a hit you are briefly untouchable. Beat the octopus to win 3 cups and move on to the next chapter. If you fall during the fight, your next game starts at the fight.";
+"boss.name" = "CAPTAIN INKBEARD";
+"card.bossIntro %@" = "CHAPTER END: %@!";
+"card.bossDefeated" = "YOU WON!";
+"card.bossReward %lld" = "+%lld CUPS";
 "help.combo.title" = "Combo";
 "help.combo.body" = "Jump two or more floors at once to start a combo. Make another multi-floor jump within three seconds to grow it. A combo ends when you jump only one floor, fall down, or run out of time. A combo of at least two jumps scores the number of floors squared.";
 "help.burn.title" = "Burning film";

@@ -130,7 +130,8 @@ public struct PlatformGenerator: Sendable {
         let bubbleRoll = rng.nextUnit()
         let bubbleKindRoll = rng.nextUnit()
 
-        var width = max(config.platformMinWidth, config.platformStartWidth - Double(floor) * config.platformShrinkPerFloor)
+        let floorInChapter = floor % max(1, config.chapterLength)
+        var width = max(config.platformMinWidth, config.platformStartWidth - Double(floorInChapter) * config.platformShrinkPerFloor)
         let isSliding: Bool
         let isSlippery: Bool
         switch config.chapter(forFloor: floor) {

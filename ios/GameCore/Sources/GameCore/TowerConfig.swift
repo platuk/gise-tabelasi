@@ -30,11 +30,14 @@ public struct TowerConfig: Equatable, Sendable {
 
     // Platformlar
     public var platformStartWidth: Double = 200
-    public var platformMinWidth: Double = 70
-    public var platformShrinkPerFloor: Double = 0.6
+    public var platformMinWidth: Double = 80
+    /// Kirişler her bölümün başında geniş başlar, bölüm boyunca daralır.
+    public var platformShrinkPerFloor: Double = 0.11
     public var platformMaxShift: Double = 170
-    /// Bölüm uzunluğu: her bu kadar katta bir kupa, kayıt noktası ve duvardan duvara "dinlenme" katı.
+    /// Her bu kadar katta bir kupa, kayıt noktası ve duvardan duvara "dinlenme" katı.
     public var milestoneInterval: Int = 100
+    /// Bölüm uzunluğu: kiriş türü bu aralıkla değişir ve her bölüm sonunda boss dövüşü vardır.
+    public var chapterLength: Int = 1000
 
     // Bölüm 2: kayan kirişler
     public var slidingWidthFactor: Double = 0.8
@@ -86,11 +89,34 @@ public struct TowerConfig: Equatable, Sendable {
     public var freeRespawns: Int = 1
     public var respawnShield: Double = 3
 
+    // Boss dövüşü (her bölüm sonunda)
+    public var bossBaseHP: Int = 70
+    public var bossHPPerChapter: Int = 25
+    /// Boss'un arena zemininden yüksekliği.
+    public var bossHeight: Double = 470
+    public var bossSway: Double = 110
+    public var bossHitRadius: Double = 62
+    public var playerMaxHP: Int = 3
+    /// Vurulduktan sonra dokunulmazlık süresi.
+    public var hurtInvulnerability: Double = 1.4
+    /// Oyuncu otomatik ateş eder.
+    public var fireInterval: Double = 0.22
+    public var bulletSpeed: Double = 760
+    public var attackInterval: Double = 2.4
+    /// Saldırıdan önceki uyarı süresi (ahtapot kollarını kaldırır).
+    public var telegraphTime: Double = 0.75
+    public var bossDefeatBonus: Int = 500
+
     public init() {}
 
-    /// 0'dan başlayan bölüm numarası (0: kat 0–99, 1: kat 100–199, ...).
+    /// 0'dan başlayan bölüm numarası (0: kat 0–999, 1: kat 1000–1999, ...).
     public func chapter(forFloor floor: Int) -> Int {
-        max(0, floor) / max(1, milestoneInterval)
+        max(0, floor) / max(1, chapterLength)
+    }
+
+    /// Bu kat bir boss arenası mı (1000, 2000, ...).
+    public func isBossFloor(_ floor: Int) -> Bool {
+        floor > 0 && floor % max(1, chapterLength) == 0
     }
 
     public var playMinX: Double { wallThickness }
