@@ -1,0 +1,15 @@
+{
+  "language": "tr",
+  "levels": [
+    { "id": 1,  "reels": [["K"], ["A"], ["R", "Ş"]],           "targets": ["KAR", "KAŞ"] },
+    { "id": 2,  "reels": [["B", "D"], ["A"], ["L"]],           "targets": ["BAL", "DAL"] },
+    { "id": 3,  "reels": [["T", "M"], ["U"], ["Z"]],           "targets": ["TUZ", "MUZ"] },
+    { "id": 4,  "reels": [["G", "K"], ["Ü"], ["L"]],           "targets": ["GÜL", "KÜL"] },
+    { "id": 5,  "reels": [["S", "K", "Y"], ["A"], ["Z"]],      "targets": ["SAZ", "KAZ", "YAZ"] },
+    { "id": 6,  "reels": [["B", "K"], ["A", "O"], ["Ş"]],      "targets": ["BAŞ", "BOŞ", "KAŞ", "KOŞ"] },
+    { "id": 7,  "reels": [["K"], ["O"], ["V", "L"], ["A"]],    "targets": ["KOVA", "KOLA"] },
+    { "id": 8,  "reels": [["M", "K", "T"], ["A"], ["S"], ["A"]], "targets": ["MASA", "KASA", "TASA"] },
+    { "id": 9,  "reels": [["K", "H", "L"], ["A"], ["L"], ["E"]], "targets": ["KALE", "HALE", "LALE"] },
+    { "id": 10, "reels": [["Y", "K", "D"], ["E"], ["D"], ["İ"]], "targets": ["YEDİ", "KEDİ", "DEDİ"] }
+  ]
+}

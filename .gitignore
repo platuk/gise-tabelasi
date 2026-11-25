@@ -1,0 +1,13 @@
+# Xcode projesi project.yml'den üretilir, depoya girmez
+ios/*.xcodeproj/
+xcuserdata/
+DerivedData/
+build/
+
+# Swift paketi
+.build/
+.swiftpm/
+
+# Sistem dosyaları
+.DS_Store
+Thumbs.db

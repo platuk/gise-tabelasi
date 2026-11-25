@@ -1,0 +1,35 @@
+"app.title" = "Box Office Sign";
+"language.picker" = "Puzzle language";
+
+"level.title %lld" = "Level %lld";
+"level.locked" = "Locked. Finish the previous level to open it.";
+"level.completed" = "Completed";
+
+"marquee.hidden" = "Word not found yet";
+"reel.up %lld" = "Turn reel %lld to the previous letter";
+"reel.down %lld" = "Turn reel %lld to the next letter";
+
+"game.hint.start" = "Turn the reels to light up the sign.";
+"game.newWord %@" = "Light on: %@";
+"game.alreadyFound %@" = "%@ is already found.";
+"game.undo" = "Undo";
+"game.complete.title" = "Level complete!";
+"game.complete.next" = "Next level";
+"game.complete.back" = "Back to levels";
+"game.allDone" = "You've finished every level for now.";
+
+"error.loadLevels" = "Levels couldn't be loaded. Try restarting the app.";
+"error.invalidLevel" = "This level couldn't be opened.";
+
+"help.title" = "How to play";
+"help.done" = "Done";
+"help.how.title" = "The game";
+"help.how.body" = "Each letter on the sign is a reel. Turn a reel with the arrow buttons or by swiping up or down. When the sign spells a target word, a light turns on. Light every bulb to finish the level.";
+"help.undo.title" = "Undo";
+"help.undo.body" = "Undo turns back your last reel move. Words you found stay found; wrong moves are never punished.";
+"help.locks.title" = "Locked levels";
+"help.locks.body" = "A level opens when you finish the one before it. There is no other way to unlock levels.";
+"help.language.title" = "Puzzle language";
+"help.language.body" = "Pick Turkish or English puzzles at the top right. Each language keeps its own progress; switching never erases it.";
+"help.privacy.title" = "Privacy";
+"help.privacy.body" = "The game works offline. There are no ads, purchases, accounts, or data collection. Your progress is stored only on this device.";

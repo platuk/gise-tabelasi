@@ -1,0 +1,60 @@
+# Her gönderimde (push) ve elle tetiklemede çalışır.
+# 1) Bölüm ve metin doğrulama (Linux, hızlı)
+# 2) Oyun mantığı testleri: swift test (macOS)
+# 3) iOS uygulamasını simülatör için derleme (macOS, imzasız)
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Bölüm ve metin doğrulama
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Bölümler
+        run: node tools/validate-levels.mjs
+      - name: Metinler
+        run: node tools/check-strings.mjs
+
+  core-tests:
+    name: Oyun mantığı testleri
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Swift sürümü
+        run: swift --version
+      - name: swift test
+        working-directory: ios/GameCore
+        run: swift test
+
+  build-app:
+    name: iOS derlemesi (simülatör)
+    runs-on: macos-15
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+      - name: XcodeGen kur
+        run: brew install xcodegen
+      - name: Xcode projesini üret
+        working-directory: ios
+        run: xcodegen generate
+      - name: Derle
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project GiseTabelasi.xcodeproj \
+            -scheme GiseTabelasi \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO

@@ -1,0 +1,35 @@
+"app.title" = "Gişe Tabelası";
+"language.picker" = "Bulmaca dili";
+
+"level.title %lld" = "Bölüm %lld";
+"level.locked" = "Kilitli. Önceki bölümü bitirince açılır.";
+"level.completed" = "Tamamlandı";
+
+"marquee.hidden" = "Henüz bulunmamış kelime";
+"reel.up %lld" = "%lld. makarayı önceki harfe çevir";
+"reel.down %lld" = "%lld. makarayı sonraki harfe çevir";
+
+"game.hint.start" = "Makaraları kaydır, tabeladaki ışıkları yak.";
+"game.newWord %@" = "Işık yandı: %@";
+"game.alreadyFound %@" = "%@ zaten bulundu.";
+"game.undo" = "Geri al";
+"game.complete.title" = "Bölüm tamam!";
+"game.complete.next" = "Sonraki bölüm";
+"game.complete.back" = "Bölümlere dön";
+"game.allDone" = "Şimdilik tüm bölümleri bitirdin.";
+
+"error.loadLevels" = "Bölümler yüklenemedi. Uygulamayı yeniden başlatmayı dene.";
+"error.invalidLevel" = "Bu bölüm açılamadı.";
+
+"help.title" = "Nasıl oynanır";
+"help.done" = "Tamam";
+"help.how.title" = "Oyun";
+"help.how.body" = "Tabeladaki her harf bir makaradır. Makarayı ok tuşlarıyla ya da yukarı/aşağı kaydırarak çevir. Tabelada okunan kelime bir hedefse bir ışık yanar. Tüm ışıklar yanınca bölüm biter.";
+"help.undo.title" = "Geri alma";
+"help.undo.body" = "Geri al, son makara hamleni geri çevirir. Bulduğun kelimeler kaybolmaz; yanlış hamlenin cezası yoktur.";
+"help.locks.title" = "Kilitli bölümler";
+"help.locks.body" = "Bir bölüm, önceki bölümü bitirdiğinde açılır. Bölümleri açmanın başka bir yolu yoktur.";
+"help.language.title" = "Bulmaca dili";
+"help.language.body" = "Sağ üstten bulmaca dilini Türkçe ya da İngilizce seçebilirsin. Her dilin ilerlemesi ayrı saklanır; dil değiştirmek ilerlemeni silmez.";
+"help.privacy.title" = "Gizlilik";
+"help.privacy.body" = "Oyun internet olmadan çalışır. Reklam, satın alma, hesap ya da veri toplama yoktur. İlerlemen yalnızca bu cihazda saklanır.";
