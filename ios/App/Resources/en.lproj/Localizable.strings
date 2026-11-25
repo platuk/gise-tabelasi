@@ -43,9 +43,9 @@
 "help.how.title" = "The game";
 "help.how.body" = "Climb a skyscraper under construction by jumping from girder to girder, as high as you can. You can pass through girders from below and land on top of them. Girders get narrower as you climb.";
 "help.controls.title" = "Controls";
-"help.controls.body" = "Hold the arrows on the left half of the screen to run, and tap the right half to jump. The faster you run, the higher you jump. Hit a wall and you bounce off it, keeping your speed.";
-"help.auto.title" = "Auto jump";
-"help.auto.body" = "Tap the AUTO button above the jump button to turn it on or off. While it is on, your character jumps by itself every time it lands; you only steer. The setting is remembered.";
+"help.controls.body" = "Hold the left half of the screen to run left and the right half to run right. The faster you run, the higher you jump. Hit a wall and you bounce off it, keeping your speed.";
+"help.auto.title" = "Jumping and AUTO";
+"help.auto.body" = "The AUTO button at the top right turns auto jump on or off, and it starts on. While it is on, your character jumps by itself every time it lands; you only steer. While it is off, swipe the finger you are holding upward to jump. The setting is remembered.";
 "help.trophy.title" = "Trophies and checkpoints";
 "help.trophy.body" = "Every 100 floors you win a trophy: Bronze, Silver, Gold, Diamond, then Legend. The floor where you win it becomes your checkpoint, and your next game can start there. To start from the bottom, use \"Start over\" on the title screen.";
 "help.chapters.title" = "Chapters";

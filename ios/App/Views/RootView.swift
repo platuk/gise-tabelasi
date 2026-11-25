@@ -18,7 +18,8 @@ struct RootView: View {
     @AppStorage("bestFloor") private var bestFloor = 0
     /// En yüksek kupanın katı (100, 200, ...): kayıt noktası. Kupa kazanıldığı an kaydedilir.
     @AppStorage("checkpointFloor") private var checkpointFloor = 0
-    @AppStorage("autoJump") private var autoJump = false
+    /// Varsayılan açık: kontroller yalnızca sol/sağ olduğundan zıplama kendiliğinden olur.
+    @AppStorage("autoJump") private var autoJump = true
     @State private var session: GameSession?
     @State private var result: GameResult?
     @State private var showingHelp = false

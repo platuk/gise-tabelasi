@@ -334,25 +334,24 @@ final class HUD: SKNode {
 }
 
 enum ControlRole: Hashable {
-    case left, right, jump
+    case left, right
 }
 
-/// Ekrandaki dokunma düğmeleri: solda iki yön, sağda zıplama ve üstünde "OTO" (otomatik zıplama) anahtarı.
-/// Ekranın sol yarısı yönler, sağ yarısı zıplamadır; OTO düğmesine dokunmak zıplatmaz, yalnızca açıp kapatır.
+/// Dokunma kontrolleri: ekranın sol yarısına basılı tutmak sola, sağ yarısına basılı tutmak sağa koşturur.
+/// Alt köşelerdeki büyük silik oklar yalnızca ipucudur; basılan taraf parlar.
+/// Sağ üstteki "OTO" anahtarı otomatik zıplamayı açıp kapatır (ona dokunmak koşturmaz).
 final class ControlsOverlay: SKNode {
-    private let left = ControlsOverlay.button(arrowAngle: .pi)
-    private let right = ControlsOverlay.button(arrowAngle: 0)
-    private let jump = ControlsOverlay.button(arrowAngle: .pi / 2, radius: 40)
+    private let left = ControlsOverlay.sideHint(pointingLeft: true)
+    private let right = ControlsOverlay.sideHint(pointingLeft: false)
     private let auto = SKNode()
     private let autoCircle = SKShapeNode(circleOfRadius: 25)
     private let autoLabel = SKLabelNode(fontNamed: "AmericanTypewriter-Bold")
-    private let autoRadius: CGFloat = 30
+    private let autoRadius: CGFloat = 34
 
     override init() {
         super.init()
         addChild(left)
         addChild(right)
-        addChild(jump)
         autoCircle.strokeColor = Palette.ink
         autoCircle.lineWidth = 3
         autoLabel.text = String(localized: "controls.auto")
@@ -368,12 +367,12 @@ final class ControlsOverlay: SKNode {
 
     required init?(coder aDecoder: NSCoder) { return nil }
 
-    func layout(in size: CGSize, bottomInset: CGFloat) {
-        let y = -size.height / 2 + bottomInset + 58
-        left.position = CGPoint(x: -size.width / 2 + 54, y: y)
-        right.position = CGPoint(x: -size.width / 2 + 132, y: y)
-        jump.position = CGPoint(x: size.width / 2 - 68, y: y)
-        auto.position = CGPoint(x: size.width / 2 - 68, y: y + 84)
+    func layout(in size: CGSize, topInset: CGFloat, bottomInset: CGFloat) {
+        let y = -size.height / 2 + bottomInset + 70
+        left.position = CGPoint(x: -size.width / 4, y: y)
+        right.position = CGPoint(x: size.width / 4, y: y)
+        // Puanın altında, sağ üst köşe: koşarken yanlışlıkla dokunulmaz.
+        auto.position = CGPoint(x: size.width / 2 - 46, y: size.height / 2 - topInset - 84)
     }
 
     func setAuto(_ on: Bool) {
@@ -388,27 +387,24 @@ final class ControlsOverlay: SKNode {
     }
 
     func highlight(_ roles: Set<ControlRole>) {
-        left.alpha = roles.contains(.left) ? 0.85 : 0.4
-        right.alpha = roles.contains(.right) ? 0.85 : 0.4
-        jump.alpha = roles.contains(.jump) ? 0.85 : 0.4
+        left.alpha = roles.contains(.left) ? 0.75 : 0.18
+        right.alpha = roles.contains(.right) ? 0.75 : 0.18
     }
 
-    private static func button(arrowAngle: CGFloat, radius: CGFloat = 32) -> SKNode {
+    /// Büyük, silik yön oku (ipucu). Asıl dokunma alanı ekranın o yarısının tamamıdır.
+    private static func sideHint(pointingLeft: Bool) -> SKNode {
         let node = SKNode()
-        let circle = SKShapeNode(circleOfRadius: radius)
-        circle.fillColor = Palette.cream
-        circle.strokeColor = Palette.ink
-        circle.lineWidth = 3
-        node.addChild(circle)
         let arrow = CGMutablePath()
-        arrow.move(to: CGPoint(x: 11, y: 0))
-        arrow.addLine(to: CGPoint(x: -7, y: 11))
-        arrow.addLine(to: CGPoint(x: -7, y: -11))
+        arrow.move(to: CGPoint(x: 26, y: 0))
+        arrow.addLine(to: CGPoint(x: -16, y: 28))
+        arrow.addLine(to: CGPoint(x: -16, y: -28))
         arrow.closeSubpath()
         let triangle = SKShapeNode(path: arrow)
-        triangle.fillColor = Palette.ink
+        triangle.fillColor = Palette.cream
         triangle.strokeColor = Palette.ink
-        triangle.zRotation = arrowAngle
+        triangle.lineWidth = 4
+        triangle.lineJoin = .round
+        triangle.zRotation = pointingLeft ? .pi : 0
         node.addChild(triangle)
         return node
     }

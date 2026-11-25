@@ -43,9 +43,9 @@
 "help.how.title" = "Oyun";
 "help.how.body" = "İnşaatı süren bir gökdelende kirişten kirişe zıplayarak olabildiğince yükseğe tırman. Kirişlerin altından geçebilir, üstlerine basabilirsin. Yükseldikçe kirişler daralır.";
 "help.controls.title" = "Kontroller";
-"help.controls.body" = "Ekranın sol yarısındaki oklara basılı tutarak koş, sağ yarısına dokunarak zıpla. Ne kadar hızlı koşarsan o kadar yükseğe zıplarsın. Duvara çarparsan hızını koruyarak geri seker, ters yöne uçarsın.";
-"help.auto.title" = "Otomatik zıplama";
-"help.auto.body" = "Zıplama düğmesinin üstündeki OTO düğmesine dokununca açılır ya da kapanır. Açıkken karakter yere her değdiğinde kendiliğinden zıplar; sen yalnızca yönü verirsin. Ayar hatırlanır.";
+"help.controls.body" = "Ekranın sol yarısına basılı tutunca sola, sağ yarısına basılı tutunca sağa koşarsın. Ne kadar hızlı koşarsan o kadar yükseğe zıplarsın. Duvara çarparsan hızını koruyarak geri seker, ters yöne uçarsın.";
+"help.auto.title" = "Zıplama ve OTO";
+"help.auto.body" = "Sağ üstteki OTO düğmesi otomatik zıplamayı açıp kapatır ve başlangıçta açıktır. Açıkken karakter yere her değdiğinde kendiliğinden zıplar; sen yalnızca yönü verirsin. Kapalıyken ekrana bastığın parmağını yukarı kaydırarak zıplarsın. Ayar hatırlanır.";
 "help.trophy.title" = "Kupalar ve kayıt noktası";
 "help.trophy.body" = "Her 100 katta bir kupa kazanırsın: Bronz, Gümüş, Altın, Elmas, sonra Efsane. Kupayı kazandığın kat kayıt noktan olur; bir sonraki oyuna istersen oradan başlarsın. Baştan başlamak için ana ekrandaki \"Baştan başla\" düğmesini kullan.";
 "help.chapters.title" = "Bölümler";

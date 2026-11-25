@@ -45,6 +45,9 @@ final class TowerScene: SKScene {
     private var weave = CGPoint.zero
     private var shakeOffsets: [CGPoint] = []
     private var touchRoles: [ObjectIdentifier: ControlRole] = [:]
+    /// Her parmağın yukarı kaydırma ölçümünün başladığı nokta (ekran noktası).
+    private var swipeOrigins: [ObjectIdentifier: CGPoint] = [:]
+    private let swipeJumpDistance: CGFloat = 36
     private var pendingJump = false
     private var gameOverSent = false
     private let haptics = Haptics()
@@ -117,7 +120,7 @@ final class TowerScene: SKScene {
 
         let insets = view?.safeAreaInsets ?? .zero
         hud.layout(in: size, topInset: insets.top)
-        controls.layout(in: size, bottomInset: insets.bottom)
+        controls.layout(in: size, topInset: insets.top, bottomInset: insets.bottom)
 
         let wallHeight = CGFloat(visibleHeight) + 200
         leftWall.configure(width: CGFloat(config.wallThickness), height: wallHeight)
@@ -453,11 +456,9 @@ final class TowerScene: SKScene {
                 onAutoJumpChanged?(autoJump)
                 continue
             }
-            let role = controlRole(for: point)
-            touchRoles[ObjectIdentifier(touch)] = role
-            if role == .jump {
-                pendingJump = true
-            }
+            let key = ObjectIdentifier(touch)
+            touchRoles[key] = controlRole(for: point)
+            swipeOrigins[key] = point
         }
         controls.highlight(Set(touchRoles.values))
     }
@@ -465,17 +466,28 @@ final class TowerScene: SKScene {
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         for touch in touches {
             let key = ObjectIdentifier(touch)
-            guard let current = touchRoles[key], current != .jump else { continue }
+            guard touchRoles[key] != nil else { continue }
             let point = touch.location(in: cameraNode)
-            // Yön parmağı sol yarıda kaydıkça sol/sağ arasında geçebilir; zıplamaya dönüşmez.
-            touchRoles[key] = point.x < -size.width / 4 ? .left : .right
+            // Parmak öbür yarıya kayarsa yön de değişir.
+            touchRoles[key] = controlRole(for: point)
+            // Yukarı kaydırma: zıpla (OTO kapalıyken zıplamanın yolu). Her yeni kaydırma yeni bir zıplama.
+            if let origin = swipeOrigins[key] {
+                if point.y - origin.y > swipeJumpDistance {
+                    pendingJump = true
+                    swipeOrigins[key] = point
+                } else if point.y < origin.y {
+                    swipeOrigins[key] = point
+                }
+            }
         }
         controls.highlight(Set(touchRoles.values))
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         for touch in touches {
-            touchRoles[ObjectIdentifier(touch)] = nil
+            let key = ObjectIdentifier(touch)
+            touchRoles[key] = nil
+            swipeOrigins[key] = nil
         }
         controls.highlight(Set(touchRoles.values))
     }
@@ -484,9 +496,9 @@ final class TowerScene: SKScene {
         touchesEnded(touches, with: event)
     }
 
+    /// Ekranın sol yarısı sola, sağ yarısı sağa.
     private func controlRole(for point: CGPoint) -> ControlRole {
-        if point.x >= 0 { return .jump }
-        return point.x < -size.width / 4 ? .left : .right
+        point.x < 0 ? .left : .right
     }
 }
 
