@@ -1,7 +1,7 @@
 # Her gönderimde (push) ve elle tetiklemede çalışır.
 # 1) Bölüm ve metin doğrulama (Linux, hızlı)
-# 2) Oyun mantığı testleri: swift test (macOS)
-# 3) iOS uygulamasını simülatör için derleme (macOS, imzasız)
+# 2) Oyun mantığı testleri: swift test (macOS 26, Xcode 26)
+# 3) iOS uygulamasını simülatör için derleme (macOS 26, imzasız)
 name: CI
 
 on:
@@ -29,7 +29,7 @@ jobs:
 
   core-tests:
     name: Oyun mantığı testleri
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v5
       - name: Swift sürümü
@@ -40,7 +40,7 @@ jobs:
 
   build-app:
     name: iOS derlemesi (simülatör)
-    runs-on: macos-15
+    runs-on: macos-26
     needs: validate
     steps:
       - uses: actions/checkout@v5

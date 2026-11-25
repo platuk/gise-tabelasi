@@ -18,7 +18,8 @@ concurrency:
 jobs:
   upload:
     name: Derle, imzala, TestFlight'a yükle
-    runs-on: macos-15
+    # App Store Connect, iOS 26 SDK (Xcode 26) veya üstüyle derlenmiş build kabul ediyor.
+    runs-on: macos-26
     timeout-minutes: 45
     env:
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -39,6 +40,9 @@ jobs:
             echo "::error::Eksik GitHub secret:$missing"
             exit 1
           fi
+
+      - name: Xcode sürümü
+        run: xcodebuild -version
 
       - name: Bölüm ve metin doğrulama
         run: |
