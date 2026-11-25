@@ -324,7 +324,8 @@ final class TowerTests: XCTestCase {
     func testSlowWallTouchIsNotAKick() {
         var sim = TowerSimulation(seed: 1)
         sim.isGrounded = false
-        sim.y = 200
+        // Alttaki kirişten 70 pt yukarıda: yardımcı el devreye girmesin, yalnızca duvar test edilsin.
+        sim.y = 230
         sim.x = sim.config.playMaxX - sim.config.playerWidth / 2 - 1
         sim.vx = 150
         let events = sim.step(dt: dt, input: TowerInput())
