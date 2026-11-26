@@ -17,7 +17,8 @@ jobs:
     if: startsWith(github.ref_name, 'reviewvideo-')
     name: Videoyu kaydet
     runs-on: macos-26
-    timeout-minutes: 60
+    # Normal kayıt ~17 dk sürer; simülatör takılırsa iş uzun beklemeden düşsün.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
       - name: Araçları kur ve projeyi üret
