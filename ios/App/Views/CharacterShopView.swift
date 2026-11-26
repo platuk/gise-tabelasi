@@ -59,13 +59,19 @@ struct CharacterShopView: View {
                     .font(Theme.title(15))
                     .foregroundStyle(Theme.marquee)
             } else if isUnlocked {
-                Button("shop.select") {
+                // Yazı rengi açıkça verilir: üstteki .foregroundStyle(Theme.ink) aksi halde koyu düğmede koyu yazı yapıyordu.
+                Button {
                     MenuFeedback.tap()
                     selected = character.rawValue
+                } label: {
+                    Text("shop.select")
+                        .font(Theme.title(15))
+                        .foregroundStyle(Theme.cream)
+                        .padding(.horizontal, 22)
+                        .padding(.vertical, 7)
+                        .background(Capsule().fill(Theme.ink))
                 }
-                    .font(Theme.title(15))
-                    .buttonStyle(.borderedProminent)
-                    .tint(Theme.ink)
+                .buttonStyle(PressStyle())
             } else {
                 Button {
                     unlock(character)

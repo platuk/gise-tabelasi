@@ -605,7 +605,8 @@ final class ControlsOverlay: SKNode {
         let y = -size.height / 2 + bottomInset + 70
         left.position = CGPoint(x: -size.width / 4, y: y)
         right.position = CGPoint(x: size.width / 4, y: y)
-        swipeHintBaseY = y + 6
+        // Karakterin başının üstünde: arena zemininde duran karakter yazıyı örtmesin.
+        swipeHintBaseY = y + 150
         swipeHint.removeAllActions()
         swipeHint.position = CGPoint(x: 0, y: swipeHintBaseY)
         if !swipeHint.isHidden {

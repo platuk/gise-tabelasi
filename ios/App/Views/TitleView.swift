@@ -43,8 +43,9 @@ struct TitleView: View {
                 Spacer().frame(height: compact ? 40 : 46)
                 TimelineView(.periodic(from: .now, by: 1.0 / 12.0)) { context in
                     let tick = Int(context.date.timeIntervalSinceReferenceDate * 12)
+                    // Tabela iki yandaki perdenin (≈58 nk) arasına sığacak kadar küçülür (dar iPhone'lar, iPad penceresi).
                     titleCard
-                        .scaleEffect(compact ? 0.8 : 1)
+                        .scaleEffect((compact ? 0.8 : 1) * min(1, (geo.size.width - 124) / 310))
                         .rotationEffect(.degrees(tick % 4 < 2 ? -1.2 : 1.2))
                         .offset(y: tick % 4 < 2 ? 0 : -2)
                 }
@@ -54,7 +55,10 @@ struct TitleView: View {
                         .font(Theme.title(15))
                         .foregroundStyle(Theme.ink.opacity(0.85))
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 50)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.75)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 62)
                 }
 
                 stage(height: compact ? 80 : 122)
