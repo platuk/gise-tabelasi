@@ -11,6 +11,8 @@ struct SettingsView: View {
     @AppStorage(GameSettings.screenShakeKey) private var screenShake = true
     @AppStorage(GameSettings.filmEffectsKey) private var filmEffects = true
     @State private var confirmingReset = false
+    private static let privacyURL = URL(string: "https://platuk.github.io/cuptower/privacy.html")!
+    private static let supportURL = URL(string: "https://platuk.github.io/cuptower/support.html")!
 
     var body: some View {
         ZStack {
@@ -69,6 +71,13 @@ struct SettingsView: View {
                     section("settings.about.title") {
                         Text("settings.about.body").font(Theme.title(14))
                         Text("help.privacy.body").font(Theme.title(12)).opacity(0.75)
+                        // App Store kuralı 5.1.1: gizlilik politikası uygulamanın içinden de açılabilmeli.
+                        Link(destination: Self.privacyURL) {
+                            Label("settings.privacyLink", systemImage: "hand.raised.fill").font(Theme.title(16))
+                        }
+                        Link(destination: Self.supportURL) {
+                            Label("settings.supportLink", systemImage: "questionmark.circle").font(Theme.title(16))
+                        }
                     }
                 }
                 .foregroundStyle(Theme.ink)

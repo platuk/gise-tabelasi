@@ -132,3 +132,5 @@
 "gameover.rushBest %lld" = "Rekord: %lld Bosse";
 "help.worlds.title" = "Welten und Tempo";
 "help.worlds.body" = "Jedes Kapitel hat seine eigene Welt: Hafen, Garten, Spukschloss, Weltall, Fabrik und Stadt. Das Material der Träger wechselt mit jedem Kapitel nach dem Boss (Stahl, Holz, Hängebrücke, Ziegel, Stein, Gerüst, Fachwerk, Art déco, Neon, Rohr, Wolke, Uhrwerk, Raumpaneel, Blumenkasten); alle funktionieren gleich. Gleitende Träger haben unten Räder und Pfeile, rutschige sind vereist. Im Titelbild wählst du das Spieltempo: Normal, Mittel oder Schnell.";
+"settings.privacyLink" = "Datenschutzerklärung";
+"settings.supportLink" = "Support";

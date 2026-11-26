@@ -143,3 +143,5 @@
 "gameover.rushBest %lld" = "Rekor: %lld boss";
 "help.worlds.title" = "Dünyalar ve hız";
 "help.worlds.body" = "Her bölümün kendi dünyası var: liman, bahçe, perili şato, uzay, fabrika ve şehir. Kirişlerin malzemesi her bölümde, boss yenildikten sonra değişir (çelik, ahşap, halat köprü, tuğla, taş, iskele, kafes, art deco, neon, boru, bulut, saat çarkı, uzay paneli, çiçek saksısı); hepsi aynı şekilde basılır. Kayan kirişlerin altında tekerlek ve oklar, kaygan kirişlerin üstünde buz vardır. Ana ekrandan oyun hızını seçebilirsin: Normal, Orta ya da Hızlı.";
+"settings.privacyLink" = "Gizlilik politikası";
+"settings.supportLink" = "Destek";

@@ -132,3 +132,5 @@
 "gameover.rushBest %lld" = "Recorde: %lld chefes";
 "help.worlds.title" = "Mundos e velocidade";
 "help.worlds.body" = "Cada capítulo tem seu mundo: porto, jardim, castelo assombrado, espaço, fábrica e cidade. O material das vigas muda a cada capítulo, depois do chefe (aço, madeira, ponte de corda, tijolo, pedra, andaime, treliça, art déco, neon, cano, nuvem, engrenagens, painel espacial, floreira); todas funcionam igual. Vigas deslizantes têm rodas e setas embaixo, e as escorregadias são cobertas de gelo. Na tela inicial você escolhe a velocidade: Normal, Média ou Rápida.";
+"settings.privacyLink" = "Política de privacidade";
+"settings.supportLink" = "Suporte";

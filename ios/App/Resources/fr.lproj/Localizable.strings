@@ -132,3 +132,5 @@
 "gameover.rushBest %lld" = "Record : %lld boss";
 "help.worlds.title" = "Mondes et vitesse";
 "help.worlds.body" = "Chaque chapitre a son monde : port, jardin, château hanté, espace, usine et ville. Le matériau des poutres change à chaque chapitre, après le boss (acier, bois, pont de corde, brique, pierre, échafaudage, treillis, art déco, néon, tuyau, nuage, horlogerie, panneau spatial, jardinière) ; tous fonctionnent pareil. Les poutres coulissantes ont des roues et des flèches dessous, les glissantes sont couvertes de glace. Sur l'écran titre, choisis la vitesse : Normale, Moyenne ou Rapide.";
+"settings.privacyLink" = "Politique de confidentialité";
+"settings.supportLink" = "Assistance";

@@ -143,3 +143,5 @@
 "gameover.rushBest %lld" = "Record: %lld bosses";
 "help.worlds.title" = "Worlds and speed";
 "help.worlds.body" = "Every chapter has its own world: harbor, garden, haunted castle, space, factory, and city. The girder material changes with every chapter, after the boss (steel, wood, rope bridge, brick, stone, scaffolding, truss, art deco, neon, pipe, cloud, clockwork, space panel, flower box); they all work the same way. Sliding girders have wheels and arrows underneath, and slippery girders are covered in ice. On the title screen you can pick the game speed: Normal, Medium, or Fast.";
+"settings.privacyLink" = "Privacy policy";
+"settings.supportLink" = "Support";

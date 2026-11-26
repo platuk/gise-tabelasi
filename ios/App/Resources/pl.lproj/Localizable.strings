@@ -132,3 +132,5 @@
 "gameover.rushBest %lld" = "Rekord: bossowie %lld";
 "help.worlds.title" = "Światy i tempo";
 "help.worlds.body" = "Każdy rozdział ma własny świat: port, ogród, nawiedzony zamek, kosmos, fabrykę i miasto. Materiał belek zmienia się co rozdział, po bossie (stal, drewno, most linowy, cegła, kamień, rusztowanie, kratownica, art déco, neon, rura, chmura, mechanizm zegarowy, panel kosmiczny, skrzynka z kwiatami); wszystkie działają tak samo. Przesuwne belki mają pod spodem kółka i strzałki, a śliskie pokrywa lód. Na ekranie tytułowym wybierasz tempo gry: normalne, średnie lub szybkie.";
+"settings.privacyLink" = "Polityka prywatności";
+"settings.supportLink" = "Pomoc";

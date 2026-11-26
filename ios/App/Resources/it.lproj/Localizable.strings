@@ -132,3 +132,5 @@
 "gameover.rushBest %lld" = "Record: %lld boss";
 "help.worlds.title" = "Mondi e velocità";
 "help.worlds.body" = "Ogni capitolo ha il suo mondo: porto, giardino, castello infestato, spazio, fabbrica e città. Il materiale delle travi cambia a ogni capitolo, dopo il boss (acciaio, legno, ponte di corda, mattoni, pietra, impalcatura, traliccio, art déco, neon, tubo, nuvola, ingranaggi, pannello spaziale, fioriera); funzionano tutte allo stesso modo. Le travi scorrevoli hanno ruote e frecce sotto, quelle scivolose sono coperte di ghiaccio. Nella schermata iniziale scegli la velocità: Normale, Media o Veloce.";
+"settings.privacyLink" = "Informativa sulla privacy";
+"settings.supportLink" = "Assistenza";
