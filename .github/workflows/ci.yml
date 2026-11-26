@@ -1,7 +1,6 @@
-# Her gönderimde (push) ve elle tetiklemede çalışır.
-# 1) Metin doğrulama (Linux, hızlı)
-# 2) Oyun mantığı testleri: swift test (macOS 26, Xcode 26)
-# 3) iOS uygulamasını simülatör için derleme (macOS 26, imzasız)
+# 1) Metin doğrulama (Linux, ucuz): her gönderimde.
+# 2) Oyun mantığı testleri ve 3) simülatör derlemesi (macOS, ücretsiz kotanın 10 katı hızla harcar):
+#    yalnızca elle tetiklenince. TestFlight derlemesi uygulamayı zaten derler.
 name: CI
 
 on:
@@ -27,6 +26,7 @@ jobs:
 
   core-tests:
     name: Oyun mantığı testleri
+    if: github.event_name == 'workflow_dispatch'
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v5
@@ -38,6 +38,7 @@ jobs:
 
   build-app:
     name: iOS derlemesi (simülatör)
+    if: github.event_name == 'workflow_dispatch'
     runs-on: macos-26
     needs: validate
     steps:
