@@ -243,6 +243,11 @@ final class HUD: SKNode {
     private let floorLabel = HUD.label(size: 20)
     private let scoreLabel = HUD.label(size: 20)
     private let comboLabel = HUD.label(size: 18)
+    // Yazıların arkasındaki krem tabelalar: kirişler, boss ya da arka plan yazının üstünden geçse de okunur.
+    private let floorPlaque = HUD.plaque()
+    private let scorePlaque = HUD.plaque()
+    private let comboPlaque = HUD.plaque()
+    private let bossPlaque = HUD.plaque()
     private let comboBarBack = SKShapeNode()
     private let comboBar = SKShapeNode()
     /// Etkin baloncukların göstergesi: ikon + kalan saniye.
@@ -275,7 +280,7 @@ final class HUD: SKNode {
         comboBarBack.lineWidth = 2
         comboBar.fillColor = Palette.flame
         comboBar.strokeColor = .clear
-        for node in [floorLabel, scoreLabel, comboLabel, comboBarBack, comboBar] {
+        for node in [floorPlaque, scorePlaque, comboPlaque, floorLabel, scoreLabel, comboLabel, comboBarBack, comboBar] {
             addChild(node)
         }
         for kind in [PowerUp.slowTime, .adrenaline, .shield] {
@@ -299,6 +304,7 @@ final class HUD: SKNode {
         bossBar.fillColor = SKColor(red: 0.58, green: 0.26, blue: 0.64, alpha: 1)
         bossBar.strokeColor = .clear
         bossName.position = CGPoint(x: 0, y: 18)
+        bossPanel.addChild(bossPlaque)
         bossPanel.addChild(bossName)
         bossPanel.addChild(bossBarBack)
         bossPanel.addChild(bossBar)
@@ -324,6 +330,7 @@ final class HUD: SKNode {
             let maxWidth = max(120, viewWidth - 60)
             if bossName.frame.width > maxWidth { bossName.setScale(maxWidth / bossName.frame.width) }
             bossBar.fillColor = color
+            HUD.wrap(bossPlaque, around: bossName)
         }
         bossMode = visible
         bossPanel.isHidden = !visible
@@ -366,6 +373,10 @@ final class HUD: SKNode {
             let maxWidth = size.width / 2 - 50
             if label.frame.width > maxWidth { label.setScale(maxWidth / label.frame.width) }
         }
+        HUD.wrap(floorPlaque, around: floorLabel)
+        HUD.wrap(scorePlaque, around: scoreLabel)
+        HUD.wrap(comboPlaque, around: comboLabel)
+        HUD.wrap(bossPlaque, around: bossName)
     }
 
     /// Etkin baloncuk sürelerini gösterir; süresi bitenler gizlenir.
@@ -410,11 +421,15 @@ final class HUD: SKNode {
         label.setScale(1)
         let maxWidth = viewWidth / 2 - 50
         if label.frame.width > maxWidth { label.setScale(maxWidth / label.frame.width) }
+        HUD.wrap(label === floorLabel ? floorPlaque : scorePlaque, around: label)
     }
 
     func showCombo(jumps: Int, floors: Int) {
         comboLabel.text = String(localized: "hud.combo \(jumps) \(floors)")
+        comboLabel.setScale(1)
+        HUD.wrap(comboPlaque, around: comboLabel)
         comboLabel.isHidden = false
+        comboPlaque.isHidden = false
         comboBar.isHidden = false
         comboBarBack.isHidden = false
         comboLabel.removeAllActions()
@@ -427,8 +442,31 @@ final class HUD: SKNode {
 
     func hideCombo() {
         comboLabel.isHidden = true
+        comboPlaque.isHidden = true
         comboBar.isHidden = true
         comboBarBack.isHidden = true
+    }
+
+    /// Yazının arkasına konan yuvarlak köşeli krem tabela (1930'lar sinema yazı kartı gibi).
+    static func plaque() -> SKShapeNode {
+        let plaque = SKShapeNode()
+        plaque.fillColor = Palette.cream.withAlphaComponent(0.88)
+        plaque.strokeColor = Palette.ink
+        plaque.lineWidth = 2
+        plaque.zPosition = -0.5
+        plaque.isHidden = true
+        return plaque
+    }
+
+    /// Tabelayı yazının o anki boyutuna göre yeniden çizer (yazı ve tabela aynı ebeveynde olmalı).
+    static func wrap(_ plaque: SKShapeNode, around label: SKLabelNode) {
+        guard let text = label.text, !text.isEmpty else {
+            plaque.isHidden = true
+            return
+        }
+        let rect = label.frame.insetBy(dx: -9, dy: -5)
+        plaque.path = CGPath(roundedRect: rect, cornerWidth: min(10, rect.height / 2), cornerHeight: min(10, rect.height / 2), transform: nil)
+        plaque.isHidden = label.isHidden
     }
 
     private static func label(size: CGFloat) -> SKLabelNode {
@@ -593,7 +631,12 @@ final class ControlsOverlay: SKNode {
         label.fontColor = Palette.ink
         label.verticalAlignmentMode = .top
         label.position = CGPoint(x: 0, y: -26)
+        // Krem tabela: arka plandaki bina, kale ya da boss mermileri yazıyı örtmesin.
+        let plaque = HUD.plaque()
+        swipeHint.addChild(plaque)
         swipeHint.addChild(label)
+        HUD.wrap(plaque, around: label)
+        plaque.isHidden = false
         swipeHint.isHidden = true
         addChild(swipeHint)
         highlight([])
