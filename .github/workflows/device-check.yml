@@ -1,0 +1,64 @@
+# Gönderim öncesi cihaz kontrolü: uygulamayı iPad'de (iPhone uygulaması uyumluluk kipinde; Apple incelemede
+# iPad'de de dener) ve en küçük güncel iPhone'da bütün ekranlarda açar, kendi kendine oynatır, çökme arar.
+# Görüntüler "device-check" dalına konur.
+name: Cihaz kontrolü
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "devicecheck-*"
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    name: ${{ matrix.name }}
+    runs-on: macos-26
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: iPad
+            match: iPad Pro
+            pick: largest
+          - name: iPhone-kucuk
+            match: "iPhone SE|iPhone 16e|iPhone 17e|iPhone"
+            pick: smallest
+    steps:
+      - uses: actions/checkout@v5
+      - name: XcodeGen kur ve projeyi üret
+        working-directory: ios
+        run: |
+          brew install xcodegen
+          xcodegen generate
+      - name: Bütün ekranlar ve uzun oyun
+        env:
+          DEVICE_MATCH: ${{ matrix.match }}
+          DEVICE_PICK: ${{ matrix.pick }}
+          SCENES: "title help settings characters bosses climb climb2 climb3 boss0 boss1 boss2 boss3 boss4 boss5"
+          LANGS: "tr:tr_TR de:de_DE ar:ar_SA"
+          WAIT_SCALE: "2"
+        run: bash tools/screenshots.sh "$RUNNER_TEMP/out/${{ matrix.name }}"
+      - name: Görüntüleri sakla
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: device-check-${{ matrix.name }}
+          path: ${{ runner.temp }}/out
+      - name: Görüntüleri "device-check" dalına koy
+        if: always()
+        run: |
+          dir="$RUNNER_TEMP/branch"
+          git clone -q --depth 1 --branch device-check "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" "$dir" 2>/dev/null \
+            || { mkdir -p "$dir" && cd "$dir" && git init -q -b device-check && git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"; }
+          cd "$dir"
+          rm -rf "${{ matrix.name }}"
+          cp -R "$RUNNER_TEMP/out/${{ matrix.name }}" "${{ matrix.name }}" 2>/dev/null || true
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Cihaz kontrolü ${{ matrix.name }}: ${GITHUB_SHA::7}" || exit 0
+          for i in 1 2 3; do git pull -q --rebase origin device-check 2>/dev/null; git push -q origin HEAD:device-check && break; sleep 5; done

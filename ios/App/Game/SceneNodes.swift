@@ -530,7 +530,8 @@ final class BubbleNode: SKNode {
     /// Saniyede 12 kez: hafif, kesik süzülme.
     func bob(step: Int, baseY: CGFloat) {
         let offsets: [CGFloat] = [0, 1.5, 3, 1.5, 0, -1.5, -3, -1.5]
-        position.y = baseY + offsets[(step + Int(baseY) % 8) % offsets.count]
+        let index = (step &+ Int(baseY)) % offsets.count
+        position.y = baseY + offsets[index < 0 ? index + offsets.count : index]
     }
 
     /// Alındığında patlama: halkalar ve damlacıklar.
