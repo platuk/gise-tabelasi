@@ -64,11 +64,13 @@ for entry in "${SEGMENTS[@]}"; do
   raw="$WORK/raw-$index.mp4"
   xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
   sleep 1
+  # Önce uygulama açılır; açılış ekranı (beyaz) kayda girmesin diye kayıt 3 sn sonra başlar.
+  xcrun simctl launch "$UDID" "$BUNDLE" -screenshot "$scene" -AppleLanguages "(en)" -AppleLocale en_US >/dev/null
+  sleep 3
   xcrun simctl io "$UDID" recordVideo --codec=h264 --force "$raw" >/dev/null 2>&1 &
   recorder=$!
-  sleep 1
-  xcrun simctl launch "$UDID" "$BUNDLE" -screenshot "$scene" -AppleLanguages "(en)" -AppleLocale en_US >/dev/null
   sleep "$seconds"
+  sleep 1
   kill -INT "$recorder"
   wait "$recorder" || true
   running=$(xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -c "$BUNDLE" || true)
@@ -87,8 +89,8 @@ w, h = box[2] - box[0], box[3] - box[1]
 draw.multiline_text(((720 - w) / 2 - box[0], (250 - h) / 2 - box[1]), text, font=font, fill="white", spacing=10, align="center")
 img.save(out)
 EOF
-  # Uygulama açılışının ilk saniyesi atlanır; 720 genişliğe küçültülür, altta açıklama şeridi.
-  ffmpeg -loglevel error -y -ss 1 -i "$raw" -i "$WORK/caption-$index.png" -t "$seconds" \
+  # Kaydın ilk yarım saniyesi atlanır; 720 genişliğe küçültülür, altta açıklama şeridi.
+  ffmpeg -loglevel error -y -ss 0.5 -i "$raw" -i "$WORK/caption-$index.png" -t "$seconds" \
     -filter_complex "[0:v]scale=720:-2,fps=30[v];[v][1:v]overlay=0:H-h" \
     -c:v libx264 -pix_fmt yuv420p -preset medium -crf 23 -an "$WORK/seg-$index.mp4"
   echo "file '$WORK/seg-$index.mp4'" >> "$WORK/list.txt"

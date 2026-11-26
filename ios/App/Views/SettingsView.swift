@@ -13,6 +13,14 @@ struct SettingsView: View {
     @State private var confirmingReset = false
     private static let privacyURL = URL(string: "https://platuk.github.io/cuptower/privacy.html")!
     private static let supportURL = URL(string: "https://platuk.github.io/cuptower/support.html")!
+    /// İnceleme videosunda alttaki açıklama şeridi Hakkında bağlantılarını örtmesin (yalnızca Debug, "settingsAbout").
+    private static var videoBottomSpace: CGFloat {
+        #if DEBUG
+        return UserDefaults.standard.string(forKey: "screenshot") == "settingsAbout" ? 300 : 0
+        #else
+        return 0
+        #endif
+    }
 
     var body: some View {
         ZStack {
@@ -85,6 +93,7 @@ struct SettingsView: View {
                 .foregroundStyle(Theme.ink)
                 .tint(Theme.marquee)
                 .padding(24)
+                .padding(.bottom, Self.videoBottomSpace)
             }
             #if DEBUG
             // İnceleme videosu (tools/review-video.sh): "settingsAbout" sahnesi Hakkında bölümüne kayar.
