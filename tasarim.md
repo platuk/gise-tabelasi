@@ -1,4 +1,4 @@
-﻿# CupTower (Kupa Kulesi): Tasarım Notu
+# CupTower (Kupa Kulesi): Tasarım Notu
 
 ## Kupalar ve bölümler
 

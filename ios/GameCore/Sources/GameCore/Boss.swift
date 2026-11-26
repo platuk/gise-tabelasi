@@ -1,4 +1,4 @@
-﻿import Foundation
+import Foundation
 
 /// Bölüm sonu boss'ları sırayla gelir; altıncıdan sonra döngü başa döner (canları artarak).
 public enum BossKind: Int, Equatable, Sendable, CaseIterable {

@@ -1,4 +1,4 @@
-﻿import CoreImage
+import CoreImage
 import SpriteKit
 import GameCore
 

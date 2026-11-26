@@ -1,4 +1,4 @@
-﻿> Yayımlanan sürüm: https://platuk.github.io/cuptower/privacy.html (kaynak: site/privacy.html)
+> Yayımlanan sürüm: https://platuk.github.io/cuptower/privacy.html (kaynak: site/privacy.html)
 
 # CupTower Privacy Policy / Gizlilik Politikası
 
