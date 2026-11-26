@@ -408,7 +408,8 @@ final class TowerTests: XCTestCase {
         let from = sim.boost?.targetFloor ?? -1
         XCTAssertNotNil(sim.boost)
         var finished: Int?
-        for _ in 0..<Int(sim.config.boostDuration / sim.config.paceStart / dt) + 10 {
+        // Yolda ağır çekim baloncuğu da alınmış olabilir: en yavaş tempoya göre süre tanınır.
+        for _ in 0..<Int(sim.config.boostDuration / (sim.config.paceStart * sim.config.slowFactor) / dt) + 10 {
             for event in sim.step(dt: dt, input: TowerInput()) {
                 if case .boostFinished(let floor) = event { finished = floor }
             }
