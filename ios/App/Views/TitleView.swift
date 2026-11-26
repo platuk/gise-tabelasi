@@ -113,7 +113,7 @@ struct TitleView: View {
     /// Oyun hızı: normal, orta, hızlı. Seçim saklanır; tırmanış da boss dövüşleri de bu hızda oynanır.
     private var speedPicker: some View {
         HStack(spacing: 6) {
-            Text("speed.title").font(Theme.title(13))
+            Text("speed.title").font(Theme.title(13)).lineLimit(1).minimumScaleFactor(0.6)
             ForEach(GameSpeed.allCases, id: \.rawValue) { speed in
                 speedButton(speed)
             }
@@ -128,6 +128,8 @@ struct TitleView: View {
         } label: {
             Text(speedName(speed))
                 .font(Theme.title(13))
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
                 .foregroundStyle(selected ? Theme.cream : Theme.ink)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
@@ -146,11 +148,9 @@ struct TitleView: View {
     }
 
     private var titleCard: some View {
-        Text("app.title")
-            .font(Theme.title(52))
-            .foregroundStyle(Theme.ink)
-            .padding(.horizontal, 40)
-            .padding(.vertical, 26)
+        CupTowerLogo(scale: 0.8)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 28)
             .background(RoundedRectangle(cornerRadius: 18).fill(Theme.cream))
             .overlay(MarqueeBulbs())
             .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.ink, lineWidth: 5))

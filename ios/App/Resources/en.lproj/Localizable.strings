@@ -1,4 +1,4 @@
-"app.title" = "TopCup";
+"app.title" = "CupTower";
 "title.subtitle" = "The Trophy Tower · a climbing picture from the 1930s";
 "title.play" = "PLAY";
 "title.continue %lld" = "CONTINUE: FLOOR %lld";
@@ -109,14 +109,15 @@
 "settings.film" = "Film flicker and grain";
 "settings.film.note" = "If you are sensitive to light, you can turn off the film flicker, scratches, and grain.";
 "settings.language.title" = "Language";
-"settings.language.body" = "The game follows your device language: Turkish or English.";
+"settings.language.body" = "The game follows your device language. To change the language of this game only, tap the button below: iPhone Settings > CupTower > Language.";
+"settings.language.open" = "Change language";
 "settings.progress" = "Progress";
 "settings.reset" = "Reset progress";
 "settings.reset.confirm" = "Erase all progress?";
 "settings.reset.message" = "Records, trophies, checkpoint, unlocked characters, and beaten bosses are erased. This cannot be undone.";
 "settings.reset.action" = "Reset";
 "settings.about.title" = "About";
-"settings.about.body" = "TopCup: The Trophy Tower. The drawings, music, and sound effects are generated in code inside the game; it is an original work inspired by 1930s cartoons.";
+"settings.about.body" = "CupTower: The Trophy Tower. The drawings, music, and sound effects are generated in code inside the game; it is an original work inspired by 1930s cartoons.";
 "help.menu.title" = "Menu and intermission";
 "help.menu.body" = "During a game, the pause button at the top stops the game; it also pauses by itself when your phone goes to the background. From the intermission menu you can resume (with a 3-2-1 countdown), restart, open settings, or go back to the title screen. Settings include music and effect volume, vibration, screen shake, and film effects.";
 "card.bossIntro %@" = "CHAPTER END: %@!";
@@ -141,4 +142,4 @@
 "gameover.rush %lld" = "Bosses beaten: %lld / 6";
 "gameover.rushBest %lld" = "Record: %lld bosses";
 "help.worlds.title" = "Worlds and speed";
-"help.worlds.body" = "Every chapter has its own world: harbor, garden, haunted castle, space, factory, and city. The girder material changes every 100 floors (steel, wood, rope bridge, brick, stone, scaffolding, truss, art deco, neon, pipe, cloud, clockwork, space panel, flower box); they all work the same way. Sliding girders have wheels and arrows underneath, and slippery girders are covered in ice. On the title screen you can pick the game speed: Normal, Medium, or Fast.";
+"help.worlds.body" = "Every chapter has its own world: harbor, garden, haunted castle, space, factory, and city. The girder material changes with every chapter, after the boss (steel, wood, rope bridge, brick, stone, scaffolding, truss, art deco, neon, pipe, cloud, clockwork, space panel, flower box); they all work the same way. Sliding girders have wheels and arrows underneath, and slippery girders are covered in ice. On the title screen you can pick the game speed: Normal, Medium, or Fast.";

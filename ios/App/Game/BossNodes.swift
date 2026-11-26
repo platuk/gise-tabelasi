@@ -7,7 +7,7 @@ import GameCore
 /// Orijin: boss'un gövde merkezi (simülasyondaki boss konumu).
 class BossNode: SKNode {
     let kind: BossKind
-    private let warning = SKLabelNode(fontNamed: "AmericanTypewriter-Bold")
+    private let warning = SKLabelNode(fontNamed: Palette.fontName)
     private(set) var isDefeated = false
     /// Uyarıda kalkan kollar/kanatlar için yumuşatılmış 0...1 değer.
     var raise: CGFloat = 0
@@ -108,7 +108,7 @@ class BossNode: SKNode {
         }
         // Çizgi film yıldızları: başın etrafında döner.
         for index in 0..<5 {
-            let star = SKLabelNode(fontNamed: "AmericanTypewriter-Bold")
+            let star = SKLabelNode(fontNamed: Palette.fontName)
             star.text = "★"
             star.fontSize = 22
             star.fontColor = Palette.milestone

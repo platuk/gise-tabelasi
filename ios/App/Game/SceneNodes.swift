@@ -399,7 +399,7 @@ final class HUD: SKNode {
     }
 
     private static func label(size: CGFloat) -> SKLabelNode {
-        let label = SKLabelNode(fontNamed: "AmericanTypewriter-Bold")
+        let label = SKLabelNode(fontNamed: Palette.fontName)
         label.fontSize = size
         label.fontColor = Palette.ink
         label.verticalAlignmentMode = .center
@@ -553,7 +553,7 @@ final class ControlsOverlay: SKNode {
         shape.lineWidth = 3
         shape.lineJoin = .round
         swipeHint.addChild(shape)
-        let label = SKLabelNode(fontNamed: "AmericanTypewriter-Bold")
+        let label = SKLabelNode(fontNamed: Palette.fontName)
         label.text = String(localized: "controls.swipeJump")
         label.fontSize = 13
         label.fontColor = Palette.ink

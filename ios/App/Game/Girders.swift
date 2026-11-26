@@ -66,7 +66,7 @@ final class PlatformNode: SKNode {
             let plate = shape(CGPath(roundedRect: CGRect(x: -17, y: -32, width: 34, height: 16), cornerWidth: 3, cornerHeight: 3, transform: nil),
                               fill: Palette.cream, width: 2)
             plate.zPosition = 2
-            let label = SKLabelNode(fontNamed: "AmericanTypewriter-Bold")
+            let label = SKLabelNode(fontNamed: Palette.fontName)
             label.text = "\(platform.floor)"
             label.fontSize = 11
             label.fontColor = Palette.ink

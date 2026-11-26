@@ -1,4 +1,4 @@
-"app.title" = "TopCup";
+"app.title" = "CupTower";
 "title.subtitle" = "Kupa Kulesi · 1930'lardan bir tırmanış gösterisi";
 "title.play" = "OYNA";
 "title.continue %lld" = "DEVAM: KAT %lld";
@@ -109,14 +109,15 @@
 "settings.film" = "Film titremesi ve gren";
 "settings.film.note" = "Işığa duyarlıysan film titremesini, çizikleri ve greni kapatabilirsin.";
 "settings.language.title" = "Dil";
-"settings.language.body" = "Oyun cihazının dilini izler: Türkçe ya da İngilizce.";
+"settings.language.body" = "Oyun cihazının dilini izler. Yalnızca bu oyunun dilini değiştirmek için aşağıdaki düğmeye dokun: iPhone Ayarları > CupTower > Dil.";
+"settings.language.open" = "Dili değiştir";
 "settings.progress" = "İlerleme";
 "settings.reset" = "İlerlemeyi sıfırla";
 "settings.reset.confirm" = "Tüm ilerleme silinsin mi?";
 "settings.reset.message" = "Rekorlar, kupalar, kayıt noktası, açılan karakterler ve yenilen boss'lar silinir. Geri alınamaz.";
 "settings.reset.action" = "Sıfırla";
 "settings.about.title" = "Hakkında";
-"settings.about.body" = "TopCup: Kupa Kulesi. Çizimler, müzik ve ses efektleri oyunun içinde kodla üretilir; 1930'ların çizgi filmlerinden ilham alan özgün bir çalışmadır.";
+"settings.about.body" = "CupTower: Kupa Kulesi. Çizimler, müzik ve ses efektleri oyunun içinde kodla üretilir; 1930'ların çizgi filmlerinden ilham alan özgün bir çalışmadır.";
 "help.menu.title" = "Menü ve ara";
 "help.menu.body" = "Oyun sırasında üstteki ara düğmesiyle oyunu durdurabilirsin; telefon arka plana geçince oyun kendiliğinden durur. Ara menüsünden devam edebilir (3-2-1 geri sayımıyla), yeniden başlayabilir, ayarları açabilir ya da ana ekrana dönebilirsin. Ayarlarda müzik ve efekt sesi, titreşim, ekran sarsıntısı ve film efektleri vardır.";
 "card.bossIntro %@" = "BÖLÜM SONU: %@!";
@@ -141,4 +142,4 @@
 "gameover.rush %lld" = "Yenilen boss: %lld / 6";
 "gameover.rushBest %lld" = "Rekor: %lld boss";
 "help.worlds.title" = "Dünyalar ve hız";
-"help.worlds.body" = "Her bölümün kendi dünyası var: liman, bahçe, perili şato, uzay, fabrika ve şehir. Kirişlerin malzemesi her 100 katta değişir (çelik, ahşap, halat köprü, tuğla, taş, iskele, kafes, art deco, neon, boru, bulut, saat çarkı, uzay paneli, çiçek saksısı); hepsi aynı şekilde basılır. Kayan kirişlerin altında tekerlek ve oklar, kaygan kirişlerin üstünde buz vardır. Ana ekrandan oyun hızını seçebilirsin: Normal, Orta ya da Hızlı.";
+"help.worlds.body" = "Her bölümün kendi dünyası var: liman, bahçe, perili şato, uzay, fabrika ve şehir. Kirişlerin malzemesi her bölümde, boss yenildikten sonra değişir (çelik, ahşap, halat köprü, tuğla, taş, iskele, kafes, art deco, neon, boru, bulut, saat çarkı, uzay paneli, çiçek saksısı); hepsi aynı şekilde basılır. Kayan kirişlerin altında tekerlek ve oklar, kaygan kirişlerin üstünde buz vardır. Ana ekrandan oyun hızını seçebilirsin: Normal, Orta ya da Hızlı.";

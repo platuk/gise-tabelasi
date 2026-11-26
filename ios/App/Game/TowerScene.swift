@@ -501,7 +501,7 @@ final class TowerScene: SKScene {
         for floor in low...high where platformNodes[floor] == nil {
             let platform = sim.platform(floor: floor)
             let node = PlatformNode(platform: platform, theme: WorldTheme.forFloor(floor, config: config),
-                                    materialIndex: floor / max(1, config.milestoneInterval))
+                                    materialIndex: config.chapter(forFloor: max(0, floor - 1)) / WorldTheme.allCases.count)
             node.zPosition = 2
             world.addChild(node)
             platformNodes[floor] = node
@@ -785,11 +785,18 @@ final class TowerScene: SKScene {
         }
         let (text, big) = cardQueue.removeFirst()
         let card = SKNode()
-        let label = SKLabelNode(fontNamed: "AmericanTypewriter-Bold")
+        let label = SKLabelNode(fontNamed: Palette.fontName)
         label.text = text
-        label.fontSize = big ? 28 : 22
+        label.fontSize = big ? 26 : 20
         label.fontColor = Palette.ink
         label.verticalAlignmentMode = .center
+        label.horizontalAlignmentMode = .center
+        // Uzun çeviriler kartın dışına taşmasın: dünya genişliğine sığacak şekilde satırlara bölünür.
+        let maxWidth = CGFloat(config.worldWidth) - 80
+        label.numberOfLines = 0
+        label.lineBreakMode = .byWordWrapping
+        label.preferredMaxLayoutWidth = maxWidth
+        if label.frame.width > maxWidth { label.setScale(maxWidth / label.frame.width) }
         let width = label.frame.width + 44
         let height = label.frame.height + 30
         let plate = SKShapeNode(rectOf: CGSize(width: width, height: height), cornerRadius: 10)

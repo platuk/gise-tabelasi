@@ -3,6 +3,12 @@ import GameCore
 
 /// 1930'lar film afişi paleti. Her şey bu renklerle çizilir; ayrıca renk filtresine gerek kalmaz.
 enum Palette {
+    /// Oyunun tek yazı tipi (SpriteKit ve SwiftUI aynı): Georgia Bold.
+    /// Latin (Türkçe ğ ş ı İ dahil), Kiril ve Yunan harflerinin hepsi aynı yazı tipinden çizilir;
+    /// önceki daktilo yazı tipinde bazı harfler başka yazı tipinden geliyor, metin karışık görünüyordu.
+    /// Japonca, Korece, Çince, Arapça, Hintçe gibi yazılarda iOS kendi uyumlu yazı tipini kullanır.
+    static let fontName = "Georgia-Bold"
+
     static let paper = SKColor(red: 0.95, green: 0.89, blue: 0.75, alpha: 1)
     static let cream = SKColor(red: 0.98, green: 0.94, blue: 0.84, alpha: 1)
     static let ink = SKColor(red: 0.12, green: 0.09, blue: 0.07, alpha: 1)

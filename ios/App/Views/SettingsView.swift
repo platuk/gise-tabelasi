@@ -39,6 +39,16 @@ struct SettingsView: View {
                     }
                     section("settings.language.title") {
                         Text("settings.language.body").font(Theme.title(14))
+                        Button {
+                            MenuFeedback.tap()
+                            // iOS'un uygulamaya özel dil seçimi: Ayarlar > CupTower > Dil.
+                            if let url = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(url)
+                            }
+                        } label: {
+                            Label("settings.language.open", systemImage: "globe")
+                                .font(Theme.title(16))
+                        }
                     }
                     if let onReset {
                         section("settings.progress") {

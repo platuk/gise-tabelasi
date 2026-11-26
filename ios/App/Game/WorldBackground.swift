@@ -716,8 +716,8 @@ final class CartoonWorldBackground: SKNode {
             root.addChild(shape(CGPath(ellipseIn: CGRect(x: -60, y: -22, width: 120, height: 44), transform: nil), fill: color))
             root.addChild(shape(CGPath(roundedRect: CGRect(x: -37, y: -7, width: 74, height: 14), cornerWidth: 4, cornerHeight: 4, transform: nil),
                                 fill: Palette.cream, width: 2))
-            let label = SKLabelNode(fontNamed: "AmericanTypewriter-Bold")
-            label.text = "TOPCUP"
+            let label = SKLabelNode(fontNamed: Palette.fontName)
+            label.text = "CUPTOWER"
             label.fontSize = 11
             label.fontColor = Palette.ink
             label.verticalAlignmentMode = .center

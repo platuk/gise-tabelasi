@@ -30,10 +30,10 @@ brew install xcodegen node
 cd ios && xcodegen generate && open GiseTabelasi.xcodeproj
 ```
 
-Paket kimliği `com.ojfamilia.gisetabelasi` (`project.yml`). Xcode proje/hedef adı tarihsel olarak `GiseTabelasi` kaldı; kullanıcıya görünmez.
+Paket kimliği `com.ojfamilia.gisetabelasi` (`project.yml`). Xcode proje/hedef adı tarihsel olarak `GiseTabelasi` kaldı; ürün adı ve görünen ad `CupTower` (`project.yml`).
 
 ## App Store notları
 
 - Gizlilik formu: "Veri toplanmıyor" (Data Not Collected). Yaş: 4+.
 - İnceleme notu: Tüm özellikler "Nasıl oynanır" ekranında yazılı. Gizli menü, uzaktan açılan özellik ya da sunucu bağlantısı yok.
-- App Store Connect'teki uygulama adı hâlâ "Gişe Tabelası"; yayından önce değiştirilecek.
+- Uygulama adı her yerde CupTower. App Store Connect'teki ad ayrıca CupTower yapılmalı (TestFlight listesinde o görünür).

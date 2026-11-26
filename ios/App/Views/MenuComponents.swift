@@ -34,6 +34,8 @@ struct TicketButton: View {
         } label: {
             Text(title)
                 .font(Theme.title(size))
+                .lineLimit(1)
+                .minimumScaleFactor(0.55)
                 .foregroundStyle(filled ? Theme.cream : Theme.ink)
                 .padding(.horizontal, size * 1.4)
                 .padding(.vertical, size * 0.45)

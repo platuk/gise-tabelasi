@@ -10,6 +10,6 @@ enum Theme {
     static let bulb = Color(red: 1.00, green: 0.82, blue: 0.30)
 
     static func title(_ size: CGFloat) -> Font {
-        .custom("AmericanTypewriter-Bold", size: size)
+        .custom(Palette.fontName, size: size)
     }
 }

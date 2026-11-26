@@ -1,4 +1,4 @@
-# TopCup (Kupa Kulesi): Tasarım Notu
+# CupTower (Kupa Kulesi): Tasarım Notu
 
 ## Kupalar ve bölümler
 
@@ -70,3 +70,11 @@
 2. Her kural değişikliği testle doğrulanır; bot testi oyunun oynanabilir kaldığını kanıtlar.
 3. Gizli özellik yok; her şey yardım ekranında yazılı (App Store 5.6).
 4. Reklam, satın alma, veri toplama yok.
+
+## Ad, logo, yazı tipi, diller (sürüm 12)
+
+- Ad her yerde CupTower (ürün adı, görünen ad, 14 dilde InfoPlist.strings, logo, zeplin).
+- Logo: oyunda "CUP [kupa] TOWER" afiş harfleri; ikon: güneş ışınlı zemin, kiriş kulesi, yıldızlı altın kupa (tools/make-icon.mjs).
+- Yazı tipi: Georgia Bold (Türkçe, Kiril, Yunan harfleri eksiksiz); uzun metinler kartta satırlara bölünür, düğmelerde küçülür.
+- Diller: en, tr, de, fr, es, it, pt-BR, ru, pl, ja, ko, zh-Hans, zh-Hant, ar. Oyun içi dil düğmesi iOS'un uygulamaya özel dil ayarını açar.
+- Kiriş malzemesi bölüm başına (boss'tan sonra) değişir; her 100 katta değil.

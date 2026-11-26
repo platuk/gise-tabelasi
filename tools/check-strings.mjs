@@ -9,7 +9,8 @@ import { fileURLToPath } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const APP = join(ROOT, "ios", "App");
 const RES = join(APP, "Resources");
-const LANGS = ["tr", "en"];
+// Resources altındaki her *.lproj klasörü bir dildir; temel dil İngilizce.
+const LANGS = ["en", ...readdirSync(RES).filter((d) => d.endsWith(".lproj") && d !== "en.lproj").map((d) => d.replace(".lproj", "")).sort()];
 
 function parseStrings(file) {
   const text = readFileSync(file, "utf8");
