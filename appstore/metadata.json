@@ -1,4 +1,4 @@
-{
+﻿{
   "copyright": "2026 Cristian Ojeda",
   "privacyPolicyUrl": "https://platuk.github.io/cuptower/privacy.html",
   "supportUrl": "https://platuk.github.io/cuptower/support.html",
@@ -7,15 +7,15 @@
   "subcategories": ["GAMES_ARCADE", "GAMES_ACTION"],
   "locales": {
     "en-US": {
-      "name": "CupTower",
-      "subtitle": "The Trophy Tower Climb",
+      "name": "CupTower: Trophy Climb",
+      "subtitle": "Jump, climb, beat the bosses",
       "promotionalText": "Jump from girder to girder up a skyscraper under construction, win trophies, and beat a giant boss at the end of every chapter. All in a hand-drawn 1930s cartoon style.",
       "keywords": "climb,jump,tower,skyscraper,cartoon,retro,boss,trophy,arcade,platformer,combo,1930s,jazz,one finger",
       "description": "CupTower is an endless climbing game inspired by 1930s rubber hose cartoons.\n\nPlay with one finger: hold the left half of the screen to run left and the right half to run right; your character jumps by itself every time it lands. The faster you run, the higher you jump. Flip off the walls, chain multi-floor jumps into combos, and stay ahead of the burning film rising from below!\n\n• A trophy every 100 floors: Bronze, Silver, Gold, Diamond, Legend. The trophy floor is your checkpoint.\n• A boss every 1000 floors: an octopus conductor, a professor worm, a count bat, an alien in a flying saucer, a rusty robot, and a bulldog hanging from a crane hook. Each has its own attacks, and every attack is announced in advance.\n• Six worlds: harbor, garden, haunted castle, space, factory, and city, with new girder materials in every chapter.\n• Surprise bubbles: rocket, slow motion, adrenaline, shield.\n• Five characters, unlocked with the trophies you win (no real-money purchases).\n• Boss fights mode: fight only the bosses and beat all six in a row.\n• Jazz music and sound effects generated in code; the band grows as your combo grows.\n• Game speed: Normal, Medium, Fast.\n• 14 languages.\n• No ads, no purchases, no accounts, no internet needed. No data is collected."
     },
     "tr": {
-      "name": "CupTower",
-      "subtitle": "Kupa Kulesi: 1930'lar tırmanışı",
+      "name": "CupTower: Kupa Kulesi",
+      "subtitle": "Zıpla, tırman, boss'ları yen",
       "promotionalText": "İnşaatı süren bir gökdelende kirişten kirişe zıpla, kupaları topla, her bölüm sonunda dev bir boss'u yen. Hepsi elle çizilmiş gibi, 1930'lar çizgi filmi tadında.",
       "keywords": "tırmanma,zıplama,kule,gökdelen,çizgi film,retro,boss,kupa,arcade,platform,kombo,1930,caz,tek parmak",
       "description": "CupTower, 1930'ların lastik hortumlu çizgi filmlerinden ilham alan, sonsuz yukarı tırmanma oyunudur.\n\nTek parmakla oyna: ekranın sol yarısına basınca sola, sağ yarısına basınca sağa koşarsın; karakterin her inişte kendiliğinden zıplar. Ne kadar hızlı koşarsan o kadar yükseğe zıplarsın. Duvara çarpıp takla at, çok katlı zıplayışları kombo yap, alttan yükselen yanan filme yakalanma!\n\n• Her 100 katta bir kupa: Bronz, Gümüş, Altın, Elmas, Efsane. Kupa katı kayıt noktandır.\n• Her 1000 katta bir boss: orkestra şefi ahtapot, kepli solucan, kont yarasa, uçan dairedeki uzaylı, paslı robot ve vinç kancasına asılı bulldog. Her biri kendi saldırılarıyla; hepsi önceden uyarır.\n• Altı dünya: liman, bahçe, perili şato, uzay, fabrika ve şehir; her bölümde yeni kiriş malzemesi.\n• Sürpriz baloncuklar: roket, ağır çekim, adrenalin, kalkan.\n• Beş karakter; kazandığın kupalarla açılır (gerçek parayla satın alma yok).\n• Boss savaşı modu: yalnızca boss'larla dövüş, altısını arka arkaya yen.\n• Kodla üretilen caz müziği ve ses efektleri; kombo büyüdükçe orkestra büyür.\n• Oyun hızı seçimi: Normal, Orta, Hızlı.\n• 14 dil.\n• Reklam yok, satın alma yok, hesap yok, internet gerekmez. Hiçbir veri toplanmaz."

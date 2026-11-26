@@ -57,6 +57,13 @@ def sunburst(img, center, color, rays=28):
                       (center[0] + r * math.cos(a1), center[1] + r * math.sin(a1))], fill=color)
 
 
+def upper(text, locale):
+    """Türkçede i -> İ, ı -> I (Python'un upper() işlevi i'yi I yapar)."""
+    if locale.startswith("tr"):
+        text = text.replace("i", "İ").replace("ı", "I")
+    return text.upper()
+
+
 def frame(raw_path, caption, out_path):
     canvas = Image.new("RGB", (W, H), RED)
     sunburst(canvas, (W // 2, 330), (255, 255, 255, 26))
@@ -66,7 +73,7 @@ def frame(raw_path, caption, out_path):
     size = 112
     while True:
         fnt = font(size)
-        lines = wrap(draw, caption.upper(), fnt, W - 160)
+        lines = wrap(draw, caption, fnt, W - 160)
         if len(lines) <= 3 or size <= 70:
             break
         size -= 6
@@ -116,7 +123,7 @@ def main():
                 print(f"eksik: {raw}")
                 continue
             out = out_dir / f"{index:02d}-{scene}.png"
-            frame(raw, caption, out)
+            frame(raw, upper(caption, locale), out)
             print(f"{out} ({W}x{H})")
 
 

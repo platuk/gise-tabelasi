@@ -229,7 +229,7 @@ extension TowerSimulation {
                 let longer: Double
                 switch attack {
                 case .wave: longer = config.waveWarningFactor
-                case .laser, .geyser: longer = 1.25
+                case .laser, .geyser: longer = 1.6
                 default: longer = 1
                 }
                 fight.telegraphLeft = (fight.phase == 3 ? config.telegraphTime * 0.7 : config.telegraphTime) * longer

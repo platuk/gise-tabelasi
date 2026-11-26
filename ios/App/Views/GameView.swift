@@ -1,5 +1,6 @@
 import SpriteKit
 import SwiftUI
+import UIKit
 
 struct GameView: View {
     @State private var scene: TowerScene
@@ -56,10 +57,13 @@ struct GameView: View {
                             .frame(width: 38, height: 38)
                             .background(Circle().fill(Theme.cream))
                             .overlay(Circle().stroke(Theme.ink, lineWidth: 2.5))
+                            .contentShape(Circle().inset(by: -6))
                     }
                     .buttonStyle(PressStyle())
                     .accessibilityLabel(Text("pause.title"))
-                    .padding(.top, 6)
+                    // Oyun ekranı güvenli alanı yok sayar; düğme Dynamic Island / çentiğin altına, HUD'un
+                    // kat ve puan satırıyla aynı hizaya konur (bkz. HUD.layout: üst boşluk + 24).
+                    .padding(.top, Self.deviceTopInset + 5)
                     Spacer()
                 }
             }
@@ -95,6 +99,13 @@ struct GameView: View {
             // Uygulama arka plana geçerse (arama, bildirim) oyun kendiliğinden duraklar.
             if phase != .active { pause() }
         }
+    }
+
+    /// Cihazın gerçek üst güvenli alanı (Dynamic Island ya da çentik dahil).
+    private static var deviceTopInset: CGFloat {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let window = scenes.flatMap(\.windows).first { $0.isKeyWindow } ?? scenes.first?.windows.first
+        return window?.safeAreaInsets.top ?? 0
     }
 
     private func pause() {

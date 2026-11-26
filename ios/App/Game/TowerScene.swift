@@ -74,7 +74,11 @@ final class TowerScene: SKScene {
     private let targetMarker = SKShapeNode()
     /// Yandan gelen dalga uyarısı: ekranın o kenarı yanıp söner, içeri bakan ok ve "!" görünür.
     private let sideFlash = SKShapeNode()
-    private let sideArrow = SKLabelNode(fontNamed: Palette.fontName)
+    /// Uyarı oku: çizilmiş üçgen + "!" (ok karakterleri yazı tipinde yok, emojiye dönüşüyordu).
+    private let sideArrow = SKNode()
+    private let arrowShape = SKShapeNode()
+    private let arrowBang = SKLabelNode(fontNamed: Palette.fontName)
+    private let warningFlash = SKSpriteNode(color: Palette.flame, size: .zero)
     private let sound = SoundEngine.shared
     /// Boss modlarında ödül ve kayıt yok; tek boss modunda dövüş bitince, sıralı modda altıncı boss'tan sonra oyun biter.
     let mode: PlayMode
@@ -103,6 +107,8 @@ final class TowerScene: SKScene {
     private var boilStep = 0
     private var cameraY: Double = 0
     private var cameraReady = false
+    /// Pencereye eklendikten sonra bir kez yeniden yerleşim (güvenli alan o zaman kesinleşir).
+    private var laidOutInWindow = false
     private var weave = CGPoint.zero
     private var shakeOffsets: [CGPoint] = []
     private var touchRoles: [ObjectIdentifier: ControlRole] = [:]
@@ -182,12 +188,29 @@ final class TowerScene: SKScene {
             sideFlash.zPosition = 900
             sideFlash.isHidden = true
             cameraNode.addChild(sideFlash)
-            sideArrow.fontSize = 40
-            sideArrow.fontColor = Palette.flame
-            sideArrow.verticalAlignmentMode = .center
+            let triangle = CGMutablePath()
+            triangle.move(to: CGPoint(x: 22, y: 0))
+            triangle.addLine(to: CGPoint(x: -14, y: 22))
+            triangle.addLine(to: CGPoint(x: -14, y: -22))
+            triangle.closeSubpath()
+            arrowShape.path = triangle
+            arrowShape.fillColor = Palette.flame
+            arrowShape.strokeColor = Palette.ink
+            arrowShape.lineWidth = 3.5
+            arrowShape.lineJoin = .round
+            sideArrow.addChild(arrowShape)
+            arrowBang.text = "!"
+            arrowBang.fontSize = 44
+            arrowBang.fontColor = Palette.ink
+            arrowBang.verticalAlignmentMode = .center
+            arrowBang.horizontalAlignmentMode = .center
+            sideArrow.addChild(arrowBang)
             sideArrow.zPosition = 901
             sideArrow.isHidden = true
             cameraNode.addChild(sideArrow)
+            warningFlash.alpha = 0
+            warningFlash.zPosition = 899
+            cameraNode.addChild(warningFlash)
         }
         layoutScene()
         syncNodes()
@@ -284,7 +307,12 @@ final class TowerScene: SKScene {
         slowTint.size = size
         worldBackground.layout(in: size)
 
-        let insets = view?.safeAreaInsets ?? .zero
+        // Pencerenin güvenli alanı: SpriteView güvenli alanı yok saysa da Dynamic Island / çentik payı doğru gelir.
+        var insets = view?.safeAreaInsets ?? .zero
+        if let windowInsets = view?.window?.safeAreaInsets {
+            insets.top = max(insets.top, windowInsets.top)
+            insets.bottom = max(insets.bottom, windowInsets.bottom)
+        }
         hud.layout(in: size, topInset: insets.top)
         controls.layout(in: size, topInset: insets.top, bottomInset: insets.bottom)
 
@@ -302,6 +330,10 @@ final class TowerScene: SKScene {
 
     override func update(_ currentTime: TimeInterval) {
         guard !gamePaused else { return }
+        if !laidOutInWindow, view?.window != nil {
+            laidOutInWindow = true
+            layoutScene()
+        }
         let frameDt = lastUpdate == 0 ? 0 : min(currentTime - lastUpdate, 0.1)
         lastUpdate = currentTime
 
@@ -455,8 +487,12 @@ final class TowerScene: SKScene {
     }
 
     /// Dalga uyarısı: dalganın geleceği kenar 12 fps'te yanıp söner; zemin hizasında içeri bakan ok.
+    /// Tehlike bölgesi uyarısı (saldırı gelmeden önce, uyarı süresince yanıp söner):
+    /// - dalga: geleceği kenar şeridi ve zemin hizasında ok
+    /// - fışkırma (alttan): ekranın alt şeridi ve işaretli yerde yukarı bakan ok
+    /// - ışın: işaretli sütun
     private func drawSideFlash() {
-        guard let fight = sim.boss, fight.telegraph == .wave else {
+        guard let fight = sim.boss, let attack = fight.telegraph, [.wave, .geyser, .laser].contains(attack) else {
             sideFlash.isHidden = true
             sideArrow.isHidden = true
             return
@@ -464,19 +500,50 @@ final class TowerScene: SKScene {
         // HUD gibi kamera alanında, ekran noktası cinsinden (bkz. `hud.layout`).
         let w = size.width
         let h = size.height
-        let width: CGFloat = 54
-        let left = fight.waveFromLeft
-        let x = left ? -w / 2 : w / 2 - width
-        sideFlash.path = CGPath(rect: CGRect(x: x, y: -h / 2, width: width, height: h), transform: nil)
-        sideFlash.fillColor = Palette.flame.withAlphaComponent(boilStep % 2 == 0 ? 0.55 : 0.2)
-        sideFlash.isHidden = false
-        // Ok, arena zemininin hemen üstünde: dalga buradan gelecek.
+        let on = boilStep % 2 == 0 || UIAccessibility.isReduceMotionEnabled
         let floorY = CGFloat(Double(fight.arenaFloor) * config.floorSpacing)
-        let arrowY = cameraNode.convert(CGPoint(x: 0, y: floorY + 34), from: world).y
-        sideArrow.text = left ? "!▶" : "◀!"
-        sideArrow.position = CGPoint(x: left ? -w / 2 + 46 : w / 2 - 46, y: arrowY)
-        sideArrow.setScale(boilStep % 2 == 0 ? 1.15 : 0.95)
+        let floorOnScreen = cameraNode.convert(CGPoint(x: CGFloat(fight.targetX), y: floorY), from: world)
+        let rect: CGRect
+        // Okun baktığı yön (radyan) ve "!" işaretinin okun neresinde durduğu.
+        let angle: CGFloat
+        switch attack {
+        case .wave:
+            let width: CGFloat = 84
+            rect = CGRect(x: fight.waveFromLeft ? -w / 2 : w / 2 - width, y: -h / 2, width: width, height: h)
+            angle = fight.waveFromLeft ? 0 : .pi
+            sideArrow.position = CGPoint(x: fight.waveFromLeft ? -w / 2 + 70 : w / 2 - 70, y: floorOnScreen.y + 40)
+        case .geyser:
+            let bandTop = max(floorOnScreen.y + 60, -h / 2 + 120)
+            rect = CGRect(x: -w / 2, y: -h / 2, width: w, height: bandTop + h / 2)
+            angle = .pi / 2
+            sideArrow.position = CGPoint(x: floorOnScreen.x, y: floorOnScreen.y + 70)
+        default:
+            rect = CGRect(x: floorOnScreen.x - 40, y: -h / 2, width: 80, height: h)
+            angle = -.pi / 2
+            sideArrow.position = CGPoint(x: floorOnScreen.x, y: floorOnScreen.y + 110)
+        }
+        arrowShape.zRotation = angle
+        // "!" okun arkasında (geldiği tarafta) durur.
+        arrowBang.position = CGPoint(x: -cos(angle) * 40, y: -sin(angle) * 40)
+        sideFlash.path = CGPath(rect: rect, transform: nil)
+        sideFlash.fillColor = Palette.flame.withAlphaComponent(on ? 0.5 : 0.18)
+        sideFlash.isHidden = false
+        sideArrow.setScale(on ? 1.2 : 0.95)
         sideArrow.isHidden = false
+    }
+
+    /// Uyarı başladığı an bütün ekran kısa bir süre turuncu yanıp söner: oyuncu nereye bakarsa baksın fark eder.
+    private func flashWarning() {
+        warningFlash.size = size
+        warningFlash.removeAllActions()
+        let frame = 1.0 / 12.0
+        let blinks = UIAccessibility.isReduceMotionEnabled ? 1 : 3
+        var steps: [SKAction] = []
+        for _ in 0..<blinks {
+            steps += [.fadeAlpha(to: 0.38, duration: 0), .wait(forDuration: frame * 2),
+                      .fadeAlpha(to: 0, duration: 0), .wait(forDuration: frame * 2)]
+        }
+        warningFlash.run(.sequence(steps))
     }
 
     /// Işın: işaretli sütunda kesikli, yanıp sönen çizgiler. Fışkırma: zeminde çatlak ve kabarcıklar.
@@ -624,9 +691,14 @@ final class TowerScene: SKScene {
                 break
             case .bossStarted:
                 showBossIntro()
-            case .bossAttackWarning:
-                haptics.impact(.light)
+            case .bossAttackWarning(let attack):
                 sound.play(.bossWarning)
+                if [.wave, .geyser, .laser].contains(attack) {
+                    haptics.notify(.warning)
+                    flashWarning()
+                } else {
+                    haptics.impact(.light)
+                }
             case .bossAttack(let attack):
                 sound.play(.bossAttack)
                 if attack == .wave || attack == .rain || attack == .laser { shake() }
@@ -764,11 +836,18 @@ final class TowerScene: SKScene {
         scan.strokeColor = Palette.cream.withAlphaComponent(0.35)
         scan.lineWidth = 2
         rewind.addChild(scan)
-        let symbol = SKLabelNode(fontNamed: Palette.fontName)
-        symbol.text = "◀◀"
-        symbol.fontSize = 60
-        symbol.fontColor = Palette.cream
-        symbol.verticalAlignmentMode = .center
+        // Geri sarma işareti: iki sola bakan üçgen (karakterle yazılırsa emojiye dönüşüyor).
+        let rewindPath = CGMutablePath()
+        for offset in [CGFloat(-24), 24] {
+            rewindPath.move(to: CGPoint(x: offset - 24, y: 0))
+            rewindPath.addLine(to: CGPoint(x: offset + 24, y: 26))
+            rewindPath.addLine(to: CGPoint(x: offset + 24, y: -26))
+            rewindPath.closeSubpath()
+        }
+        let symbol = SKShapeNode(path: rewindPath)
+        symbol.fillColor = Palette.cream
+        symbol.strokeColor = Palette.ink
+        symbol.lineWidth = 3
         symbol.position = CGPoint(x: 0, y: -size.height * 0.05)
         rewind.addChild(symbol)
         var frames: [SKAction] = []

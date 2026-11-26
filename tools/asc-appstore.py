@@ -130,19 +130,39 @@ def upsert_localization(kind, parent_rel, parent_type, parent_id, existing, loca
 @section("Uygulama bilgileri: ad, alt başlık, gizlilik URL'si")
 def app_info_texts(info):
     existing = call("GET", f"/v1/appInfos/{info['id']}/appInfoLocalizations")["data"]
+    errors = []
     for locale, texts in META["locales"].items():
-        upsert_localization("appInfoLocalizations", "appInfo", "appInfos", info["id"], existing, locale, {
-            "name": texts["name"], "subtitle": texts["subtitle"], "privacyPolicyUrl": META["privacyPolicyUrl"]})
-        print(f"   {locale}: {texts['name']} · {texts['subtitle']}")
+        try:
+            upsert_localization("appInfoLocalizations", "appInfo", "appInfos", info["id"], existing, locale, {
+                "name": texts["name"], "subtitle": texts["subtitle"], "privacyPolicyUrl": META["privacyPolicyUrl"]})
+            print(f"   {locale}: {texts['name']} · {texts['subtitle']}")
+        except ApiError as error:
+            errors.append(f"{locale}: {error}")
+            print(f"   {locale}: HATA {error}")
+    if errors:
+        raise ApiError(" | ".join(errors))
 
 
 @section("Kategori: Oyunlar > Arcade, Aksiyon")
 def category(info):
-    rel = {"primaryCategory": {"data": {"type": "appCategories", "id": META["primaryCategory"]}}}
-    names = ["primarySubcategoryOne", "primarySubcategoryTwo"]
-    for name, sub in zip(names, META["subcategories"]):
-        rel[name] = {"data": {"type": "appCategories", "id": sub}}
-    call("PATCH", f"/v1/appInfos/{info['id']}", {"data": {"type": "appInfos", "id": info["id"], "relationships": rel}})
+    primary = {"primaryCategory": {"data": {"type": "appCategories", "id": META["primaryCategory"]}}}
+    subs = {name: {"data": {"type": "appCategories", "id": sub}}
+            for name, sub in zip(["primarySubcategoryOne", "primarySubcategoryTwo"], META["subcategories"])}
+    # Önce ana kategori, sonra alt kategoriler tek tek: biri reddedilirse ötekiler yine kalır.
+    attempts = [primary] + [{**primary, name: value} for name, value in subs.items()]
+    done = []
+    last_error = None
+    for rel in attempts:
+        try:
+            call("PATCH", f"/v1/appInfos/{info['id']}",
+                 {"data": {"type": "appInfos", "id": info["id"], "relationships": rel}})
+            done.append(next(reversed(rel)))
+        except ApiError as error:
+            last_error = error
+            print(f"   {list(rel)[-1]}: {error}")
+    print(f"   ayarlanan: {', '.join(done) or '-'}")
+    if not done and last_error:
+        raise last_error
 
 
 @section("Sürüm bilgileri: açıklama, anahtar kelimeler, destek URL'si, telif")
@@ -181,8 +201,27 @@ def age_rating(info):
             patch[key] = META["ageRating"].get(key, "NONE")
         elif key in BOOL_KEYS:
             patch[key] = False
-    call("PATCH", f"/v1/ageRatingDeclarations/{declaration['id']}", {"data": {
-        "type": "ageRatingDeclarations", "id": declaration["id"], "attributes": patch}})
+    # Apple yeni sorular ekledikçe (ör. socialMedia) API "şu alan zorunlu" der: cevabı "hayır/yok" olarak ekleyip
+    # yeniden denenir. Önce evet/hayır (False) denenir; değer türü reddedilirse "NONE".
+    import re
+    for _ in range(30):
+        try:
+            call("PATCH", f"/v1/ageRatingDeclarations/{declaration['id']}", {"data": {
+                "type": "ageRatingDeclarations", "id": declaration["id"], "attributes": patch}})
+            break
+        except ApiError as error:
+            text = str(error)
+            missing = re.search(r"attribute '(\w+)'", text)
+            if missing and missing.group(1) not in patch:
+                patch[missing.group(1)] = False
+                print(f"   yeni soru: {missing.group(1)} = hayır")
+                continue
+            wrong = next((k for k in patch if f"'{k}'" in text or f"/{k}" in text), None)
+            if wrong and patch[wrong] is False:
+                patch[wrong] = "NONE"
+                print(f"   {wrong}: hayır yerine 'yok'")
+                continue
+            raise
     unknown = sorted(set(current) - ENUM_KEYS - BOOL_KEYS)
     print(f"   {len(patch)} soru cevaplandı; dokunulmayanlar: {', '.join(unknown) or '-'}")
     print("   çizgi film şiddeti ve korku: seyrek/hafif; geri kalan: yok")
