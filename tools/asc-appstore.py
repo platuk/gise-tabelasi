@@ -237,8 +237,16 @@ def review_notes(version):
     except ApiError:
         detail = None
     if detail:
-        call("PATCH", f"/v1/appStoreReviewDetails/{detail['id']}", {"data": {
-            "type": "appStoreReviewDetails", "id": detail["id"], "attributes": attributes}})
+        try:
+            call("PATCH", f"/v1/appStoreReviewDetails/{detail['id']}", {"data": {
+                "type": "appStoreReviewDetails", "id": detail["id"], "attributes": attributes}})
+        except ApiError as error:
+            # Kayıt varken Apple iletişim bilgilerini (ad, e-posta, telefon) de ister; bunlar geliştiricinin kişisel
+            # bilgileri olduğu için App Store Connect'te elle girilir. Not ilk oluşturmada kaydedilmiştir.
+            if "contact" not in str(error):
+                raise
+            print("   not daha önce kaydedildi; güncellemek için önce App Review iletişim bilgileri elle girilmeli")
+            return
     else:
         call("POST", "/v1/appStoreReviewDetails", {"data": {
             "type": "appStoreReviewDetails", "attributes": attributes,

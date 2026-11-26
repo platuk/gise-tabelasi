@@ -5,7 +5,7 @@ App Store sayfasının neredeyse tamamı **otomatik** doldurulur: `.github/workf
 
 | # | Ne | Nasıl | Kaynak |
 |---|---|---|---|
-| 1 | Ad **CupTower**, alt başlık (en-US, tr) | API, otomatik | `metadata.json` |
+| 1 | Ad **CupTower: Trophy Climb** / **CupTower: Kupa Kulesi** ("CupTower" başka bir hesapta kayıtlı; ana ekranda yine "CupTower"), alt başlık | API, otomatik (yapıldı) | `metadata.json` |
 | 2 | Gizlilik politikası URL'si | API, otomatik | https://platuk.github.io/cuptower/privacy.html |
 | 3 | Destek URL'si, pazarlama URL'si | API, otomatik | https://platuk.github.io/cuptower/support.html |
 | 4 | Açıklama, anahtar kelimeler, tanıtım metni, telif | API, otomatik | `metadata.json` |
