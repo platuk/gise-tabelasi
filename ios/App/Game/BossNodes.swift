@@ -1,4 +1,4 @@
-import CoreImage
+﻿import CoreImage
 import SpriteKit
 import GameCore
 
@@ -177,7 +177,7 @@ class BossNode: SKNode {
     }
 }
 
-// MARK: - 1. Maestro Mürekkep (ahtapot orkestra şefi)
+// MARK: - 1. Maestro Oktavyo (ahtapot orkestra şefi)
 
 /// Orkestra şefi ahtapot: kabarık "maestro" saç perçemi, papyon, bir kolunda baget; çatık kaşlar, dişli ağız,
 /// 8 dalgalanan emicili kol. Uyarıda bagetini kaldırır (ritmi verir), kollar kalkar.

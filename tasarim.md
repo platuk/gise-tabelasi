@@ -1,4 +1,4 @@
-# CupTower (Kupa Kulesi): Tasarım Notu
+﻿# CupTower (Kupa Kulesi): Tasarım Notu
 
 ## Kupalar ve bölümler
 
@@ -20,7 +20,7 @@
 ## Bölümler ve boss (1000 kat)
 
 - Bölüm = 1000 kat; kirişler bölüm başında geniş (200), sonuna doğru daralır (80). Kupa ve kayıt noktası her 100 katta.
-- Her bölüm sonunda bir boss; ilki Maestro Mürekkep (orkestra şefi ahtapot; eski adı ve kaptan şapkası başka bir oyunun boss'una fazla benzediği için değiştirildi): film durur, arena kilitlenir, oyuncu otomatik ateş eder, 3 can.
+- Her bölüm sonunda bir boss; ilki Maestro Oktavyo (orkestra şefi ahtapot; eski adı ve kaptan şapkası başka bir oyunun boss'una fazla benzediği için değiştirildi): film durur, arena kilitlenir, oyuncu otomatik ateş eder, 3 can.
   Saldırılar uyarılıdır (kollar kalkar, parlar). Aşama 1: yelpaze + dalga; aşama 2: + nişanlı mürekkep; aşama 3: + yağmur, daha hızlı.
   Zafer: +500×n puan, +3 kupa, sonraki bölüm. Dövüşte ölünürse sonraki oyun dövüşten başlar.
 - Arka plan: kodla "suluboya" boyanan katmanlar (gökyüzü bantları, güneş/ay/yıldızlar, şehir, iki bulut katmanı, kuşlar, zeplin).

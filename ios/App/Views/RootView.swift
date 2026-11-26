@@ -11,6 +11,8 @@ struct GameSession: Identifiable {
     /// Tırmanış, tek boss ya da bütün boss'lar sırayla (boss modlarında ödül ve tırmanış rekoru yok).
     var mode: PlayMode = .climb
     var speed: GameSpeed = .normal
+    /// Kendi kendine oynar (yalnızca ekran görüntüsü modunda).
+    var demo = false
 }
 
 struct GameResult: Equatable {
@@ -129,8 +131,41 @@ struct RootView: View {
         .statusBarHidden(true)
         .onAppear {
             SoundEngine.shared.start()
+            #if DEBUG
+            if let scene = UserDefaults.standard.string(forKey: "screenshot") {
+                openScreenshotScene(scene)
+            }
+            #endif
         }
     }
+
+    #if DEBUG
+    /// App Store ekran görüntüleri için (CI: tools/screenshots.sh): `-screenshot <sahne>` başlatma argümanıyla
+    /// oyun doğrudan o sahnede, kendi kendine oynayarak açılır. Yalnızca Debug derlemesinde vardır.
+    private func openScreenshotScene(_ name: String) {
+        bestScore = 18_450
+        bestFloor = 1_845
+        checkpointFloor = 1_800
+        trophyWallet = 7
+        unlockedCharacters = "0,1,2,3"
+        defeatedBossFloor = 1_000
+        func demo(floor: Int, _ character: GameCharacter, mode: PlayMode = .climb) {
+            session = GameSession(seed: 2026, startFloor: floor, bossAlreadyDefeated: mode == .climb,
+                                  character: character, mode: mode, speed: .normal, demo: true)
+        }
+        switch name {
+        case "climb": demo(floor: 140, .tipi)
+        case "climb2": demo(floor: 2_460, .beyefendi)
+        case "climb3": demo(floor: 4_330, .mirnav)
+        case "characters": showingCharacters = true
+        case "bosses": showingBosses = true
+        default:
+            if name.hasPrefix("boss"), let index = Int(name.dropFirst(4)), let kind = BossKind(rawValue: index) {
+                demo(floor: (kind.rawValue + 1) * 1000, .fistik, mode: .singleBoss)
+            }
+        }
+    }
+    #endif
 
     private func start(from floor: Int) {
         result = nil

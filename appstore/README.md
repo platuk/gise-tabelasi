@@ -1,30 +1,35 @@
 # CupTower: App Store başvuru dosyası
 
-Bu klasör App Store Connect'e girilecek her şeyi içerir. Kod tarafı hazır; aşağıdaki **elle yapılacak** adımlar
-App Store Connect'te (tarayıcıda) yapılır.
+App Store sayfasının neredeyse tamamı **otomatik** doldurulur: `.github/workflows/appstore.yml`
+(GitHub > Actions > App Store > Run workflow ya da `appstore-N` etiketi).
 
-## Elle yapılacaklar (gönderimden önce şart)
-
-| # | Ne | Nerede | Durum |
+| # | Ne | Nasıl | Kaynak |
 |---|---|---|---|
-| 1 | Uygulama adını **CupTower** yap (şu an "Gişe Tabelası"; ad ile ikon altındaki ad uyuşmazsa 2.3.8'den red) | Uygulama Bilgileri > Ad | Yapılmadı |
-| 2 | Alt başlık: `metadata-*.md` | Uygulama Bilgileri | Yapılmadı |
-| 3 | **Gizlilik politikası URL'si** (her uygulama için zorunlu, veri toplamasa bile) | Uygulama Gizliliği | Barındırma gerekli: `privacy-policy.md` |
-| 4 | **Destek URL'si** (zorunlu) | Sürüm bilgileri | Barındırma gerekli |
-| 5 | Uygulama Gizliliği formu: "Veri toplanmıyor" | Uygulama Gizliliği | Yapılmadı |
-| 6 | Yaş sınırı anketi: `age-rating.md` | Uygulama Bilgileri > Yaş Sınırı | Yapılmadı |
-| 7 | Ekran görüntüleri: 6.9" (1320×2868 ya da 1290×2796), en az 3, en çok 10 | Sürüm > Önizlemeler | Yapılmadı |
-| 8 | Açıklama, anahtar kelimeler, tanıtım metni: `metadata-*.md` | Sürüm bilgileri | Yapılmadı |
-| 9 | İnceleme notları: `review-notes.md` (boss'lara hızlı ulaşma yolu dahil) | Sürüm > App Review bilgileri | Yapılmadı |
-| 10 | Kategori: Oyunlar > Arcade (ikinci: Aksiyon) | Uygulama Bilgileri | Kontrol et |
-| 11 | Fiyat: Ücretsiz; uygulama içi satın alma yok | Fiyat ve Bulunabilirlik | Kontrol et |
-| 12 | Telif: "© 2026 Cristian Ojeda" (ya da geliştirici adı) | Sürüm bilgileri | Yapılmadı |
+| 1 | Ad **CupTower**, alt başlık (en-US, tr) | API, otomatik | `metadata.json` |
+| 2 | Gizlilik politikası URL'si | API, otomatik | https://platuk.github.io/cuptower/privacy.html |
+| 3 | Destek URL'si, pazarlama URL'si | API, otomatik | https://platuk.github.io/cuptower/support.html |
+| 4 | Açıklama, anahtar kelimeler, tanıtım metni, telif | API, otomatik | `metadata.json` |
+| 5 | Kategori: Oyunlar > Arcade, Aksiyon | API, otomatik | `metadata.json` |
+| 6 | Yaş sınırı anketi (beklenen 9+) | API, otomatik | `metadata.json`, `age-rating.md` |
+| 7 | App Review notu | API, otomatik | `review-notes.md` |
+| 8 | Ekran görüntüleri: 6.9" iPhone, 8 adet, en-US ve tr | Simülatörde çekilir, başlık eklenir, API ile yüklenir | `tools/screenshots.sh`, `tools/frame-screenshots.py` |
+| 9 | **Uygulama Gizliliği: "Veri toplanmıyor"** | **Elle** (API'de yok): App Store Connect > Uygulama Gizliliği > Başla > Hayır > Yayımla | — |
+| 10 | Fiyat: Ücretsiz | Elle kontrol: Fiyat ve Bulunabilirlik | — |
+| 11 | App Review iletişim bilgileri (ad, telefon, e-posta) | Elle: Sürüm > App Review bilgileri | — |
+| 12 | Build seçimi ve "İncelemeye gönder" | Elle | — |
 
-## Kodda yapılanlar (bu sürüm)
+Web sayfaları `site/` klasöründedir; ayrı ve herkese açık `platuk/cuptower` deposunda GitHub Pages ile yayımlanır
+(ana depo gizli kaldığı için). Güncellemek için: `tools/publish-site.ps1`.
 
-- Gizlilik bildirimi `ios/App/PrivacyInfo.xcprivacy`: izleme yok, veri toplama yok; UserDefaults (CA92.1) ve
-  süre ölçümü (35F9.1) gerekçeleri.
-- Şifreleme beyanı: `ITSAppUsesNonExemptEncryption = NO` (her yüklemede soru sorulmaz).
-- Başka bir oyunu çağrıştırabilecek öğeler değiştirildi: ahtapot boss'un kaptan şapkası ve adı, ölümde yukarı süzülen hayalet.
-- 14 dil; yardım ekranı bütün özellikleri anlatır (gizli özellik yok, 2.3.1 / 5.6).
+## Kodda yapılanlar
+
+- Gizlilik bildirimi `ios/App/PrivacyInfo.xcprivacy`: izleme yok, izleme alan adı yok, toplanan veri yok;
+  gerekçeli API'ler UserDefaults (CA92.1) ve sistem açılış zamanı (35F9.1, `CACurrentMediaTime`).
+  TestFlight iş akışı her yüklemede dosyanın pakette ve geçerli olduğunu, görünen adın CupTower olduğunu doğrular.
+- Şifreleme beyanı: `ITSAppUsesNonExemptEncryption = NO`.
+- Başka bir oyunu çağrıştırabilecek öğeler kaldırıldı: kaptan şapkalı ahtapot boss'u orkestra şefi oldu, adı
+  "Maestro Oktavyo / Octavio" (eski "Inkwell" adı başka bir oyunun dünya adıydı), ölümde yukarı süzülen hayalet yerine
+  film geri sarma, kaynak kodda başka oyun adı yok.
+- Ekran görüntüsü modu (`-screenshot <sahne>`) yalnızca Debug derlemesinde vardır; App Store sürümünde yoktur.
+- 14 dil; yardım ekranı bütün özellikleri anlatır (gizli özellik yok).
 - Reklam, satın alma, hesap, ağ bağlantısı yok.

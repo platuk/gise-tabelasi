@@ -90,6 +90,14 @@ jobs:
             CODE_SIGN_STYLE=Automatic \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
 
+      - name: Gizlilik bildirimini doğrula
+        run: |
+          APP="$RUNNER_TEMP/GiseTabelasi.xcarchive/Products/Applications/CupTower.app"
+          plutil -lint "$APP/PrivacyInfo.xcprivacy"
+          plutil -p "$APP/PrivacyInfo.xcprivacy"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$APP/Info.plist")" = "CupTower"
+          echo "Gizlilik bildirimi pakette, görünen ad CupTower."
+
       - name: App Store Connect'e yükle
         run: |
           set -o pipefail

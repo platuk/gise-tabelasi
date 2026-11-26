@@ -1,3 +1,5 @@
+﻿> Yayımlanan sürüm: https://platuk.github.io/cuptower/privacy.html (kaynak: site/privacy.html)
+
 # CupTower Privacy Policy / Gizlilik Politikası
 
 _Last updated / Son güncelleme: 2026-11-26_
@@ -12,7 +14,7 @@ CupTower does not collect, store on servers, share, or sell any personal data.
   Deleting the app deletes them. You can also erase them in Settings > Reset progress.
 - The game does not access your contacts, photos, location, camera, microphone, or any other personal information.
 
-Contact: (developer e-mail)
+Contact: https://platuk.github.io/cuptower/support.html
 
 ## Türkçe
 
@@ -24,4 +26,4 @@ CupTower hiçbir kişisel veriyi toplamaz, sunuculara kaydetmez, paylaşmaz ya d
   Uygulamayı silmek bunları da siler. Ayarlar > İlerlemeyi sıfırla ile de silebilirsin.
 - Oyun rehberine, fotoğraflarına, konumuna, kameraya, mikrofona ya da başka bir kişisel bilgiye erişmez.
 
-İletişim: (geliştirici e-postası)
+İletişim: https://platuk.github.io/cuptower/support.html

@@ -1,0 +1,80 @@
+# App Store sayfasını hazırlar:
+#  1) Uygulamayı iPhone 6.9" simülatöründe açıp 8 sahnenin ekran görüntüsünü alır (İngilizce ve Türkçe)
+#  2) Görüntüleri başlıklı tanıtım görsellerine çevirir (1290x2796)
+#  3) Görselleri "screenshots" dalına koyar (göz atmak için) ve iş çıktısı olarak saklar
+#  4) App Store Connect'e ad, metinler, yaş sınırı, inceleme notu ve görselleri API ile yükler
+# Başlatma: GitHub > Actions > App Store > Run workflow, ya da "appstore-" ile başlayan bir etiket.
+name: App Store
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "appstore-*"
+
+concurrency:
+  group: appstore
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  store:
+    name: Ekran görüntüleri ve App Store bilgileri
+    runs-on: macos-26
+    timeout-minutes: 50
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: XcodeGen kur ve projeyi üret
+        working-directory: ios
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Ekran görüntülerini çek
+        run: bash tools/screenshots.sh "$RUNNER_TEMP/raw"
+
+      - name: Tanıtım görsellerine çevir
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet pillow pyjwt cryptography
+          "$RUNNER_TEMP/venv/bin/python" tools/frame-screenshots.py "$RUNNER_TEMP/raw" "$RUNNER_TEMP/framed"
+
+      - name: Görselleri sakla
+        uses: actions/upload-artifact@v4
+        with:
+          name: appstore-screenshots
+          path: |
+            ${{ runner.temp }}/raw
+            ${{ runner.temp }}/framed
+
+      - name: Görselleri "screenshots" dalına koy
+        run: |
+          dir="$RUNNER_TEMP/branch"
+          mkdir -p "$dir"
+          cp -R "$RUNNER_TEMP/framed" "$dir/framed"
+          cp -R "$RUNNER_TEMP/raw" "$dir/raw"
+          cd "$dir"
+          git init -q -b screenshots
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Ekran görüntüleri: ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" screenshots
+
+      - name: App Store Connect'e yükle
+        run: |
+          KEY_PATH="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
+          printf '%s\n' "$ASC_KEY_P8" > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          KEY_PATH="$KEY_PATH" SCREENSHOTS="$RUNNER_TEMP/framed" "$RUNNER_TEMP/venv/bin/python" tools/asc-appstore.py
+
+      - name: API anahtarını sil
+        if: always()
+        run: rm -f "$RUNNER_TEMP"/AuthKey_*.p8

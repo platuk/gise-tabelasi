@@ -47,6 +47,8 @@ final class TowerScene: SKScene {
     /// Tırmanışta karakter yere değdiği an kendiliğinden zıplar.
     /// Boss dövüşü ayrı bir moddur: orada otomatik zıplama yoktur, parmak yukarı kaydırılarak zıplanır.
     private var autoJump: Bool { sim.boss == nil }
+    /// Kendi kendine oynama (yalnızca ekran görüntüsü modunda açılır).
+    var demoPilot = false
 
     private var sim: TowerSimulation
     private let config: TowerConfig
@@ -308,8 +310,12 @@ final class TowerScene: SKScene {
 
         accumulator += isRespawning ? 0 : frameDt
         while accumulator >= stepDuration && !isRespawning {
-            let jump = pendingJump || (autoJump && sim.isGrounded)
-            let events = sim.step(dt: stepDuration, input: TowerInput(direction: direction, jump: jump))
+            var input = TowerInput(direction: direction, jump: pendingJump || (autoJump && sim.isGrounded))
+            if demoPilot {
+                input = DemoPilot.input(for: &sim)
+                input.jump = input.jump || (autoJump && sim.isGrounded)
+            }
+            let events = sim.step(dt: stepDuration, input: input)
             pendingJump = false
             handle(events)
             accumulator -= stepDuration

@@ -26,10 +26,12 @@ struct GameView: View {
         self.onBossDefeated = onBossDefeated
         self.onRestart = onRestart
         self.onMenu = onMenu
-        _scene = State(initialValue: TowerScene(
+        let scene = TowerScene(
             seed: session.seed, startFloor: session.startFloor, bossAlreadyDefeated: session.bossAlreadyDefeated,
             character: session.character, mode: session.mode, speed: session.speed
-        ))
+        )
+        scene.demoPilot = session.demo
+        _scene = State(initialValue: scene)
     }
 
     var body: some View {

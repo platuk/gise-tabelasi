@@ -1,8 +1,8 @@
-import Foundation
+﻿import Foundation
 
 /// Bölüm sonu boss'ları sırayla gelir; altıncıdan sonra döngü başa döner (canları artarak).
 public enum BossKind: Int, Equatable, Sendable, CaseIterable {
-    /// Kaptan Mürekkep: ahtapot.
+    /// Maestro Oktavyo: orkestra şefi ahtapot.
     case octopus = 0
     /// Profesör Kıvrım: solucan.
     case worm
