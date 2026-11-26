@@ -10,6 +10,9 @@ BUNDLE=com.ojfamilia.gisetabelasi
 FONT="/System/Library/Fonts/Supplemental/Georgia Bold.ttf"
 mkdir -p "$OUT"
 WORK="$(mktemp -d)"
+python3 -m venv "$WORK/venv"
+"$WORK/venv/bin/pip" install --quiet pillow
+PY="$WORK/venv/bin/python"
 
 # sahne | saniye | açıklama (satır sonu: \n)
 SEGMENTS=(
@@ -71,10 +74,22 @@ for entry in "${SEGMENTS[@]}"; do
   running=$(xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -c "$BUNDLE" || true)
   if [ "${running:-0}" = 0 ]; then echo "::error::Uygulama '$scene' sahnesinde kapandı"; exit 1; fi
 
-  printf '%b' "$caption" > "$WORK/caption-$index.txt"
-  # Uygulama açılışının ilk saniyesi atlanır; 720 genişliğe küçültülür, altta yarı saydam şeritte açıklama.
-  ffmpeg -loglevel error -y -ss 1 -i "$raw" -t "$seconds" \
-    -vf "scale=720:-2,fps=30,drawbox=x=0:y=ih-250:w=iw:h=250:color=black@0.72:t=fill,drawtext=fontfile='$FONT':textfile='$WORK/caption-$index.txt':fontcolor=white:fontsize=30:line_spacing=10:x=(w-text_w)/2:y=h-250+(250-text_h)/2" \
+  # Açıklama şeridi Pillow ile resim olarak çizilir (Homebrew ffmpeg'de drawtext yok).
+  "$PY" - "$WORK/caption-$index.png" "$FONT" "$caption" <<'EOF'
+import sys
+from PIL import Image, ImageDraw, ImageFont
+out, font_path, text = sys.argv[1], sys.argv[2], sys.argv[3].replace("\\n", "\n")
+img = Image.new("RGBA", (720, 250), (0, 0, 0, 184))
+draw = ImageDraw.Draw(img)
+font = ImageFont.truetype(font_path, 30)
+box = draw.multiline_textbbox((0, 0), text, font=font, spacing=10, align="center")
+w, h = box[2] - box[0], box[3] - box[1]
+draw.multiline_text(((720 - w) / 2 - box[0], (250 - h) / 2 - box[1]), text, font=font, fill="white", spacing=10, align="center")
+img.save(out)
+EOF
+  # Uygulama açılışının ilk saniyesi atlanır; 720 genişliğe küçültülür, altta açıklama şeridi.
+  ffmpeg -loglevel error -y -ss 1 -i "$raw" -i "$WORK/caption-$index.png" -t "$seconds" \
+    -filter_complex "[0:v]scale=720:-2,fps=30[v];[v][1:v]overlay=0:H-h" \
     -c:v libx264 -pix_fmt yuv420p -preset medium -crf 23 -an "$WORK/seg-$index.mp4"
   echo "file '$WORK/seg-$index.mp4'" >> "$WORK/list.txt"
   echo "Parça $index: $scene ($seconds sn)"
