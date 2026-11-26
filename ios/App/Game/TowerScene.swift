@@ -70,6 +70,9 @@ final class TowerScene: SKScene {
     private var bossNode: BossNode?
     /// Işın ve fışkırma uyarısında hedef işareti (arenada).
     private let targetMarker = SKShapeNode()
+    /// Yandan gelen dalga uyarısı: ekranın o kenarı yanıp söner, içeri bakan ok ve "!" görünür.
+    private let sideFlash = SKShapeNode()
+    private let sideArrow = SKLabelNode(fontNamed: Palette.fontName)
     private let sound = SoundEngine.shared
     /// Boss modlarında ödül ve kayıt yok; tek boss modunda dövüş bitince, sıralı modda altıncı boss'tan sonra oyun biter.
     let mode: PlayMode
@@ -173,6 +176,16 @@ final class TowerScene: SKScene {
             targetMarker.zPosition = 3
             targetMarker.lineWidth = 3
             world.addChild(targetMarker)
+            sideFlash.strokeColor = .clear
+            sideFlash.zPosition = 900
+            sideFlash.isHidden = true
+            cameraNode.addChild(sideFlash)
+            sideArrow.fontSize = 40
+            sideArrow.fontColor = Palette.flame
+            sideArrow.verticalAlignmentMode = .center
+            sideArrow.zPosition = 901
+            sideArrow.isHidden = true
+            cameraNode.addChild(sideArrow)
         }
         layoutScene()
         syncNodes()
@@ -318,6 +331,7 @@ final class TowerScene: SKScene {
         character.isScared = sim.burnActive && sim.boss == nil && sim.y - sim.burnY < 170
         character.tick(step: boilStep)
         drawTargetMarker()
+        drawSideFlash()
         if sim.burnActive {
             burn.redraw(step: boilStep)
         }
@@ -432,6 +446,31 @@ final class TowerScene: SKScene {
             projectileNodes[id]?.removeFromParent()
             projectileNodes[id] = nil
         }
+    }
+
+    /// Dalga uyarısı: dalganın geleceği kenar 12 fps'te yanıp söner; zemin hizasında içeri bakan ok.
+    private func drawSideFlash() {
+        guard let fight = sim.boss, fight.telegraph == .wave else {
+            sideFlash.isHidden = true
+            sideArrow.isHidden = true
+            return
+        }
+        // HUD gibi kamera alanında, ekran noktası cinsinden (bkz. `hud.layout`).
+        let w = size.width
+        let h = size.height
+        let width: CGFloat = 54
+        let left = fight.waveFromLeft
+        let x = left ? -w / 2 : w / 2 - width
+        sideFlash.path = CGPath(rect: CGRect(x: x, y: -h / 2, width: width, height: h), transform: nil)
+        sideFlash.fillColor = Palette.flame.withAlphaComponent(boilStep % 2 == 0 ? 0.55 : 0.2)
+        sideFlash.isHidden = false
+        // Ok, arena zemininin hemen üstünde: dalga buradan gelecek.
+        let floorY = CGFloat(Double(fight.arenaFloor) * config.floorSpacing)
+        let arrowY = cameraNode.convert(CGPoint(x: 0, y: floorY + 34), from: world).y
+        sideArrow.text = left ? "!▶" : "◀!"
+        sideArrow.position = CGPoint(x: left ? -w / 2 + 46 : w / 2 - 46, y: arrowY)
+        sideArrow.setScale(boilStep % 2 == 0 ? 1.15 : 0.95)
+        sideArrow.isHidden = false
     }
 
     /// Işın: işaretli sütunda kesikli, yanıp sönen çizgiler. Fışkırma: zeminde çatlak ve kabarcıklar.
@@ -694,28 +733,49 @@ final class TowerScene: SKScene {
 
     // MARK: Diriliş
 
-    /// 1930'lar çizgi filmi gibi: hayalet yukarı süzülür, "BİR ŞANS DAHA!" kartı, iris kapanır,
-    /// karakter kirişine geri döner, iris açılır.
+    /// Film geri sarılır: ekranda "◀◀" işareti ve kayan tarama çizgileri, karakter titreyerek geri çekilir;
+    /// "BİR ŞANS DAHA!" kartı, iris kapanır, karakter kirişine geri döner, iris açılır.
+    /// (Oyunun "yanan film" temasına özgü; hayalet süzülmesi gibi başka oyunlarda görülen bir ölüm gösterisi kullanılmaz.)
     private func playRespawn() {
         isRespawning = true
         touchRoles.removeAll()
         controls.highlight([])
         haptics.notify(.warning)
         sound.play(.respawn)
-        character.isHidden = true
 
-        let ghost = RubberHoseCharacter(style: .ghost)
-        ghost.position = character.position
-        ghost.zPosition = 40
-        world.addChild(ghost)
-        var floatUp: [SKAction] = []
-        for frame in 0..<14 {
-            let sway: CGFloat = frame % 4 < 2 ? 6 : -6
-            floatUp.append(.run { ghost.tick(step: frame) })
-            floatUp.append(.moveBy(x: sway, y: 12, duration: 0))
-            floatUp.append(.wait(forDuration: 1.0 / 12.0))
+        let rewind = SKNode()
+        rewind.zPosition = 950
+        cameraNode.addChild(rewind)
+        let scan = SKShapeNode()
+        let lines = CGMutablePath()
+        var y = -size.height / 2
+        while y < size.height / 2 + 16 {
+            lines.move(to: CGPoint(x: -size.width / 2, y: y))
+            lines.addLine(to: CGPoint(x: size.width / 2, y: y))
+            y += 16
         }
-        ghost.run(.sequence([.sequence(floatUp), .fadeOut(withDuration: 0.2), .removeFromParent()]))
+        scan.path = lines
+        scan.strokeColor = Palette.cream.withAlphaComponent(0.35)
+        scan.lineWidth = 2
+        rewind.addChild(scan)
+        let symbol = SKLabelNode(fontNamed: Palette.fontName)
+        symbol.text = "◀◀"
+        symbol.fontSize = 60
+        symbol.fontColor = Palette.cream
+        symbol.verticalAlignmentMode = .center
+        symbol.position = CGPoint(x: 0, y: -size.height * 0.05)
+        rewind.addChild(symbol)
+        var frames: [SKAction] = []
+        for frame in 0..<14 {
+            frames.append(.run { [weak self] in
+                scan.position.y = frame % 2 == 0 ? 0 : 8
+                symbol.alpha = frame % 2 == 0 ? 1 : 0.55
+                // Kare kare yanıp söner (konum ve saydamlık her karede sahneyle eşitlendiği için görünürlükle).
+                self?.character.isHidden = frame % 2 == 1 || frame >= 12
+            })
+            frames.append(.wait(forDuration: 1.0 / 12.0))
+        }
+        rewind.run(.sequence([.sequence(frames), .fadeOut(withDuration: 0.2), .removeFromParent()]))
         showTitleCard(String(localized: "card.respawn"), big: true)
 
         run(.sequence([

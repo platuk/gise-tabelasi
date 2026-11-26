@@ -128,7 +128,6 @@ struct RootView: View {
         .preferredColorScheme(.light)
         .statusBarHidden(true)
         .onAppear {
-            GameSettings.register()
             SoundEngine.shared.start()
         }
     }

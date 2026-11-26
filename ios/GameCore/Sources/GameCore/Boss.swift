@@ -129,6 +129,8 @@ public struct BossFight: Equatable, Sendable {
     public internal(set) var telegraphLeft: Double = 0
     /// Işın ve fışkırma saldırılarının hedeflediği x (uyarıda işaretlenir).
     public internal(set) var targetX: Double = 0
+    /// Dalga hangi duvardan gelecek (uyarıda belirlenir; ekranın o kenarı yanıp söner).
+    public internal(set) var waveFromLeft = true
     var attackIndex = 0
 
     /// 1: tam can, 2: üçte iki altı, 3: üçte bir altı.
@@ -222,7 +224,14 @@ extension TowerSimulation {
                 fight.telegraph = attack
                 // Işın ve fışkırma oyuncunun şu anki yerini hedefler; uyarı süresince kaçılır.
                 fight.targetX = min(max(x, config.playMinX + 30), config.playMaxX - 30)
-                let longer = attack == .laser || attack == .geyser ? 1.25 : 1
+                // Oyuncudan uzak duvar; uyarı süresince değişmez ki oyuncu hangi yandan geleceğini bilsin.
+                fight.waveFromLeft = x > config.worldWidth / 2
+                let longer: Double
+                switch attack {
+                case .wave: longer = config.waveWarningFactor
+                case .laser, .geyser: longer = 1.25
+                default: longer = 1
+                }
                 fight.telegraphLeft = (fight.phase == 3 ? config.telegraphTime * 0.7 : config.telegraphTime) * longer
                 events.append(.bossAttackWarning(attack))
             }
@@ -326,9 +335,9 @@ extension TowerSimulation {
             }
         case .wave:
             // Oyuncudan uzak duvardan çıkar ki tepki süresi olsun.
-            let fromLeft = x > config.worldWidth / 2
+            let fromLeft = fight.waveFromLeft
             let startX = fromLeft ? config.playMinX : config.playMaxX
-            add(x: startX, y: arenaY + 16, vx: fromLeft ? 280 : -280, vy: 0, radius: 18)
+            add(x: startX, y: arenaY + 16, vx: fromLeft ? config.waveSpeed : -config.waveSpeed, vy: 0, radius: 18)
         case .rain:
             let lanes = 6
             let laneWidth = (config.playMaxX - config.playMinX) / Double(lanes)

@@ -245,13 +245,14 @@ final class TowerTests: XCTestCase {
         slippery.x = slippery.platform(floor: 2250).centerX
         slippery.land(onFloor: 2250)
         slippery.vx = 200
-        for _ in 0..<20 {
+        // Çelikte sürtünme hızı tamamen keser; aynı sürede kaygan kirişte hız büyük ölçüde korunur.
+        for _ in 0..<26 {
             _ = steel.step(dt: dt, input: TowerInput())
             _ = slippery.step(dt: dt, input: TowerInput())
         }
         XCTAssertEqual(steel.vx, 0)
         // Duvara çarpıp sekmiş olabilir; önemli olan hızın büyük ölçüde korunması.
-        XCTAssertGreaterThan(abs(slippery.vx), 100)
+        XCTAssertGreaterThan(abs(slippery.vx), 85)
     }
 
     func testSlidingGirderCarriesPlayer() {
@@ -440,7 +441,7 @@ final class TowerTests: XCTestCase {
         let config = TowerConfig()
         XCTAssertEqual(config.pace(forFloor: 0), config.paceStart, accuracy: 1e-9)
         XCTAssertLessThan(config.pace(forFloor: 0), 1)
-        XCTAssertEqual(config.pace(forFloor: 800), 1, accuracy: 1e-9)
+        XCTAssertEqual(config.pace(forFloor: 2000), 1, accuracy: 1e-9)
         XCTAssertGreaterThan(config.pace(forFloor: 2000), config.pace(forFloor: 1000))
         XCTAssertEqual(config.pace(forFloor: 100_000), config.paceMax, accuracy: 1e-9)
         // Yanan filmin azami hızı her bölümde artar, ama bir tavanı vardır.
@@ -449,7 +450,7 @@ final class TowerTests: XCTestCase {
 
         // Aynı gerçek sürede, yukarıdaki katlarda dünya daha hızlı akar.
         var low = TowerSimulation(seed: 1)
-        var high = TowerSimulation(seed: 1, startFloor: 1900)
+        var high = TowerSimulation(seed: 1, startFloor: 2900)
         for _ in 0..<120 {
             _ = low.step(dt: dt, input: TowerInput())
             _ = high.step(dt: dt, input: TowerInput())
@@ -776,6 +777,33 @@ final class TowerTests: XCTestCase {
         XCTAssertTrue(sawBounce)
         for _ in 0..<(120 * 9) { _ = sim.step(dt: dt, input: TowerInput()) }
         XCTAssertFalse(sim.enemyShots.contains { $0.kind == .bolt && $0.age > 8.1 })
+    }
+
+    /// Yandan gelen dalga: uyarıda hangi duvardan geleceği belli olur ve zıplamaya hazırlanmak için en az 1.3 saniye vardır.
+    func testWaveWarnsWhichSideWithTimeToJump() {
+        var sim = TowerSimulation(seed: 4, startFloor: 1000) // ahtapot, 1. aşama: yelpaze, dalga
+        sim.shieldRemaining = 100_000
+        sim.x = 100
+        sim.boss?.attackIndex = 1
+        sim.boss?.attackTimer = 0
+        var warnedAt: Double?
+        var firedAt: Double?
+        var realTime = 0.0
+        for _ in 0..<(120 * 4) {
+            for event in sim.step(dt: dt, input: TowerInput()) {
+                if case .bossAttackWarning(.wave) = event {
+                    warnedAt = realTime
+                    XCTAssertEqual(sim.boss?.waveFromLeft, false) // oyuncu solda: dalga sağdan gelir
+                }
+                if case .bossAttack(.wave) = event { firedAt = realTime }
+            }
+            realTime += dt
+            if firedAt != nil { break }
+        }
+        let warned = try? XCTUnwrap(warnedAt)
+        let fired = try? XCTUnwrap(firedAt)
+        XCTAssertGreaterThanOrEqual((fired ?? 0) - (warned ?? 0), 1.3)
+        XCTAssertTrue(sim.enemyShots.contains { $0.kind == .wave && $0.vx < 0 })
     }
 
     func testBossCanBeDefeatedAndClimbingResumes() {

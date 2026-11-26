@@ -1,4 +1,4 @@
-import Foundation
+import UIKit
 
 /// Oyuncu ayarları (yalnızca bu cihazda saklanır). SwiftUI tarafı aynı anahtarları @AppStorage ile kullanır.
 enum GameSettings {
@@ -8,13 +8,16 @@ enum GameSettings {
     static let screenShakeKey = "screenShake"
     static let filmEffectsKey = "filmEffects"
 
+    /// Varsayılanlar. iPhone'da "Hareketi Azalt" açıksa ekran sarsıntısı ve film titremesi kapalı başlar
+    /// (oyuncu Ayarlar'dan yine açabilir).
     static func register() {
+        let calm = UIAccessibility.isReduceMotionEnabled
         UserDefaults.standard.register(defaults: [
             musicVolumeKey: 0.7,
             sfxVolumeKey: 0.85,
             hapticsKey: true,
-            screenShakeKey: true,
-            filmEffectsKey: true,
+            screenShakeKey: !calm,
+            filmEffectsKey: !calm,
         ])
     }
 

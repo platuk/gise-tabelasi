@@ -53,10 +53,10 @@ public struct TowerConfig: Equatable, Sendable {
     public var cardInterval: Int = 25
 
     // Tempo: oyun sakin başlar, katlar ve bölümler ilerledikçe hızlanır (dünya zamanı çarpanı).
-    public var paceStart: Double = 0.8
-    /// Her kat için tempo artışı (kat 800'de normal hıza ulaşır).
-    public var pacePerFloor: Double = 0.00025
-    public var paceMax: Double = 1.12
+    public var paceStart: Double = 0.62
+    /// Her kat için tempo artışı (kat 2000 civarında eski normal hıza ulaşır).
+    public var pacePerFloor: Double = 0.00019
+    public var paceMax: Double = 1.05
     /// Oyuncunun seçtiği oyun hızı (normal 1, orta 1.15, hızlı 1.3); tempoyu bütünüyle çarpar.
     public var speedMultiplier: Double = 1
 
@@ -117,6 +117,9 @@ public struct TowerConfig: Equatable, Sendable {
     public var attackInterval: Double = 2.4
     /// Saldırıdan önceki uyarı süresi (ahtapot kollarını kaldırır).
     public var telegraphTime: Double = 0.75
+    /// Yandan gelen dalganın uyarısı daha uzun sürer (ekran kenarı yanıp söner, zıplamaya hazırlanılır).
+    public var waveWarningFactor: Double = 1.9
+    public var waveSpeed: Double = 220
     public var bossDefeatBonus: Int = 500
 
     public init() {}
@@ -126,7 +129,7 @@ public struct TowerConfig: Equatable, Sendable {
         max(0, floor) / max(1, chapterLength)
     }
 
-    /// Oyunun temposu (dünya zamanı çarpanı): kat 0'da 0.8, kat 800'de 1.0, en çok 1.12.
+    /// Oyunun temposu (dünya zamanı çarpanı): kat 0'da 0.62, kat 2000'de 1.0, en çok 1.05; oyuncunun hız seçimiyle çarpılır.
     public func pace(forFloor floor: Int) -> Double {
         min(paceMax, paceStart + pacePerFloor * Double(max(0, floor))) * speedMultiplier
     }

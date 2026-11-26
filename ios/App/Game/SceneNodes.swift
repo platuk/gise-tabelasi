@@ -256,6 +256,11 @@ final class HUD: SKNode {
     private let bossBarWidth: CGFloat = 230
     private var hearts: [SKShapeNode] = []
     private var shownFloor = -1
+    private var viewWidth: CGFloat = 390
+    /// Boss dövüşünde baloncuk göstergeleri kalplerin altına iner.
+    private var bossMode = false
+    private var normalPowerUpY: CGFloat = 0
+    private var bossPowerUpY: CGFloat = 0
     private var shownScore = -1
     private let barWidth: CGFloat = 150
 
@@ -314,10 +319,16 @@ final class HUD: SKNode {
     func showBoss(_ visible: Bool, name: String, color: SKColor) {
         if visible {
             bossName.text = name
+            bossName.setScale(1)
+            // Uzun adlar (ör. Arapça, Almanca) ekrana sığacak kadar küçülür.
+            let maxWidth = max(120, viewWidth - 60)
+            if bossName.frame.width > maxWidth { bossName.setScale(maxWidth / bossName.frame.width) }
             bossBar.fillColor = color
         }
+        bossMode = visible
         bossPanel.isHidden = !visible
         for heart in hearts { heart.isHidden = !visible }
+        if visible { hideCombo() }
     }
 
     func updateBoss(hp: Int, maxHP: Int, playerHP: Int) {
@@ -331,22 +342,35 @@ final class HUD: SKNode {
 
     required init?(coder aDecoder: NSCoder) { return nil }
 
+    /// Düzen (yukarıdan aşağı): kat · [ara düğmesi] · puan; altında ortada kombo ya da boss adı, can çubuğu ve kalpler;
+    /// en altta etkin baloncuklar. Ara düğmesi (SwiftUI) üst satırın ortasında durur; hiçbir öğe onunla çakışmaz.
     func layout(in size: CGSize, topInset: CGFloat) {
+        viewWidth = size.width
         let top = size.height / 2 - topInset - 24
-        floorLabel.position = CGPoint(x: -size.width / 2 + 30, y: top)
-        scoreLabel.position = CGPoint(x: size.width / 2 - 30, y: top)
-        comboLabel.position = CGPoint(x: 0, y: top - 36)
-        comboBarBack.position = CGPoint(x: 0, y: top - 56)
+        floorLabel.position = CGPoint(x: -size.width / 2 + 26, y: top)
+        scoreLabel.position = CGPoint(x: size.width / 2 - 26, y: top)
+        comboLabel.position = CGPoint(x: 0, y: top - 50)
+        comboBarBack.position = CGPoint(x: 0, y: top - 70)
         comboBar.position = comboBarBack.position
-        powerUpRowY = top - 84
-        bossPanel.position = CGPoint(x: 0, y: top - 44)
+        normalPowerUpY = top - 98
+        bossPowerUpY = top - 130
+        powerUpRowY = bossMode ? bossPowerUpY : normalPowerUpY
+        // Boss paneli: ad (top - 52), çubuk (top - 72); kalpler ortada (top - 100).
+        bossPanel.position = CGPoint(x: 0, y: top - 72)
+        bossName.position = CGPoint(x: 0, y: 20)
         for (index, heart) in hearts.enumerated() {
-            heart.position = CGPoint(x: -size.width / 2 + 34 + CGFloat(index) * 28, y: top - 34)
+            heart.position = CGPoint(x: CGFloat(index - 1) * 30, y: top - 100)
+        }
+        for label in [floorLabel, scoreLabel] {
+            label.setScale(1)
+            let maxWidth = size.width / 2 - 50
+            if label.frame.width > maxWidth { label.setScale(maxWidth / label.frame.width) }
         }
     }
 
     /// Etkin baloncuk sürelerini gösterir; süresi bitenler gizlenir.
     func updatePowerUps(_ remaining: [PowerUp: Double]) {
+        powerUpRowY = bossMode ? bossPowerUpY : normalPowerUpY
         let active = [PowerUp.slowTime, .adrenaline, .shield].filter { (remaining[$0] ?? 0) > 0 }
         let spacing: CGFloat = 62
         var x = -spacing * CGFloat(active.count - 1) / 2
@@ -367,16 +391,25 @@ final class HUD: SKNode {
         if floor != shownFloor {
             shownFloor = floor
             floorLabel.text = String(localized: "hud.floor \(floor)")
+            fit(floorLabel)
         }
         if score != shownScore {
             shownScore = score
             scoreLabel.text = String(localized: "hud.score \(score)")
+            fit(scoreLabel)
         }
         if let fraction = comboFraction {
             let width = barWidth * CGFloat(max(0, min(1, fraction)))
             comboBar.path = CGPath(roundedRect: CGRect(x: -barWidth / 2, y: -4, width: max(width, 0.1), height: 8),
                                    cornerWidth: 4, cornerHeight: 4, transform: nil)
         }
+    }
+
+    /// Üst satırdaki yazı ortadaki ara düğmesine taşmasın: yarım ekrandan 50 pt dar alana sığdırılır.
+    private func fit(_ label: SKLabelNode) {
+        label.setScale(1)
+        let maxWidth = viewWidth / 2 - 50
+        if label.frame.width > maxWidth { label.setScale(maxWidth / label.frame.width) }
     }
 
     func showCombo(jumps: Int, floors: Int) {

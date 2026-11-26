@@ -177,9 +177,10 @@ class BossNode: SKNode {
     }
 }
 
-// MARK: - 1. Kaptan Mürekkep (ahtapot)
+// MARK: - 1. Maestro Mürekkep (ahtapot orkestra şefi)
 
-/// Kaptan şapkası, çatık kaşlar, dişli ağız, 8 dalgalanan emicili kol.
+/// Orkestra şefi ahtapot: kabarık "maestro" saç perçemi, papyon, bir kolunda baget; çatık kaşlar, dişli ağız,
+/// 8 dalgalanan emicili kol. Uyarıda bagetini kaldırır (ritmi verir), kollar kalkar.
 final class OctopusNode: BossNode {
     private let tentacles: [SKShapeNode] = (0..<8).map { _ in BossNode.shape(OctopusNode.purple) }
     private let suckers: [SKShapeNode] = (0..<8).map { _ in BossNode.shape(Palette.cream, 1) }
@@ -191,9 +192,11 @@ final class OctopusNode: BossNode {
     private let brows = BossNode.line(6)
     private let mouth = BossNode.shape(SKColor(red: 0.30, green: 0.05, blue: 0.12, alpha: 1))
     private let teeth = BossNode.shape(Palette.cream, 1.5)
-    private let capTop = BossNode.shape(Palette.cream)
-    private let capBand = BossNode.shape(SKColor(red: 0.16, green: 0.20, blue: 0.40, alpha: 1), 2)
-    private let capBrim = BossNode.shape(SKColor(red: 0.12, green: 0.12, blue: 0.20, alpha: 1), 2)
+    private let hair = BossNode.shape(SKColor(red: 0.30, green: 0.12, blue: 0.36, alpha: 1), 3)
+    private let bowTie = BossNode.shape(Palette.cream, 2.5)
+    private let bowKnot = BossNode.shape(Palette.ink, 0)
+    private let baton = BossNode.line(4)
+    private let batonTip = BossNode.line(3, color: Palette.cream)
 
     static let purple = SKColor(red: 0.58, green: 0.26, blue: 0.64, alpha: 1)
     private static let angry = SKColor(red: 0.80, green: 0.22, blue: 0.36, alpha: 1)
@@ -212,10 +215,14 @@ final class OctopusNode: BossNode {
         }
         spots.path = spotPath
         shine.path = Self.ellipse(-17, 53, 26, 14)
-        capTop.path = CGPath(roundedRect: CGRect(x: -34, y: 72, width: 68, height: 26), cornerWidth: 12, cornerHeight: 12, transform: nil)
-        capBand.path = CGPath(rect: CGRect(x: -34, y: 72, width: 68, height: 9), transform: nil)
-        capBrim.path = Self.ellipse(0, 70, 80, 12)
-        for node in [mantle, spots, shine, eyeWhites, pupils, brows, mouth, teeth, capTop, capBand, capBrim] { addChild(node) }
+        let bow = CGMutablePath()
+        bow.addLines(between: [CGPoint(x: 0, y: -41), CGPoint(x: -22, y: -31), CGPoint(x: -22, y: -53)])
+        bow.closeSubpath()
+        bow.addLines(between: [CGPoint(x: 0, y: -41), CGPoint(x: 22, y: -31), CGPoint(x: 22, y: -53)])
+        bow.closeSubpath()
+        bowTie.path = bow
+        bowKnot.path = Self.ellipse(0, -41, 9, 9)
+        for node in [hair, mantle, spots, shine, eyeWhites, pupils, brows, mouth, teeth, bowTie, bowKnot, baton, batonTip] { addChild(node) }
     }
 
     required init?(coder aDecoder: NSCoder) { return nil }
@@ -272,6 +279,31 @@ final class OctopusNode: BossNode {
             tentacle.path = outline
             suckers[index].path = dots
         }
+
+        // Maestro saçı: başın üstünde kabarık, her karede biraz savrulan üç perçem.
+        let sway = boilJitter(step: step, index: 51, amount: 4)
+        let tuft = CGMutablePath()
+        tuft.move(to: CGPoint(x: -30, y: 66))
+        tuft.addQuadCurve(to: CGPoint(x: -14 + sway, y: 98), control: CGPoint(x: -36, y: 92))
+        tuft.addQuadCurve(to: CGPoint(x: 2, y: 74), control: CGPoint(x: -4, y: 86))
+        tuft.addQuadCurve(to: CGPoint(x: 14 + sway, y: 104), control: CGPoint(x: 0, y: 100))
+        tuft.addQuadCurve(to: CGPoint(x: 22, y: 72), control: CGPoint(x: 24, y: 90))
+        tuft.addQuadCurve(to: CGPoint(x: 38 + sway, y: 90), control: CGPoint(x: 34, y: 78))
+        tuft.addQuadCurve(to: CGPoint(x: 30, y: 62), control: CGPoint(x: 44, y: 72))
+        tuft.closeSubpath()
+        hair.path = tuft
+        // Baget: sağ dış kolun ucunda; uyarıda yukarı kalkar (ritmi verir).
+        let hand = CGPoint(x: 62 + raise * 18, y: -60 + raise * 120)
+        let angle: CGFloat = raise > 0.5 ? 1.2 : -0.3 + CGFloat(step % 4) * 0.15
+        let end = CGPoint(x: hand.x + cos(angle) * 44, y: hand.y + sin(angle) * 44)
+        let stick = CGMutablePath()
+        stick.move(to: hand)
+        stick.addLine(to: end)
+        baton.path = stick
+        let tip = CGMutablePath()
+        tip.move(to: CGPoint(x: hand.x + cos(angle) * 30, y: hand.y + sin(angle) * 30))
+        tip.addLine(to: end)
+        batonTip.path = tip
     }
 
     /// Tek bir kol: orta çizgi boyunca dalga, kenarlar incelerek uca kavuşur.

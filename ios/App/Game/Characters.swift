@@ -40,12 +40,6 @@ struct CharacterStyle {
     var bowTie = false
     var alpha: CGFloat = 1
 
-    /// Dirilişte yukarı süzülen hayalet.
-    static let ghost = CharacterStyle(
-        body: SKColor(white: 0.97, alpha: 1), head: SKColor(white: 0.97, alpha: 1), face: .white,
-        shoes: SKColor(white: 0.9, alpha: 1), gloves: .white, accent: SKColor(white: 0.9, alpha: 1),
-        accessory: .none, alpha: 0.75
-    )
 }
 
 /// Kupalarla açılan 5 özgün karakter. Gerçek parayla satın alma yoktur; para birimi kazanılan kupalardır.

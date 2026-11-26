@@ -2,8 +2,8 @@ import SpriteKit
 import UIKit
 import GameCore
 
-/// Kodla "suluboya" boyayan ressam. Cuphead'in arka planları elle suluboya boyanmıştır;
-/// burada aynı hissi katman katman yarı saydam fırça lekeleri ve kâğıt dokusuyla taklit ederiz.
+/// Kodla "suluboya" boyayan ressam. 1930'ların çizgi film arka planları elle suluboya boyanırdı;
+/// burada o hissi katman katman yarı saydam fırça lekeleri ve kâğıt dokusuyla üretiriz.
 /// Her doku bir kez, oyun açılırken boyanır (deterministik: aynı tohum, aynı resim).
 enum WatercolorPainter {
     struct RGB {

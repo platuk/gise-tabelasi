@@ -75,6 +75,16 @@ final class PlatformNode: SKNode {
             label.zPosition = 3
             addChild(label)
         }
+
+        // Performans: kiriş onlarca şekil düğümünden oluşur ve hiç değişmez; tek bir dokuya çizilip önbelleğe alınır
+        // (eski iPhone'larda takılmayı önler). Kayan kiriş bütün olarak kaydırıldığı için bu onu etkilemez.
+        let raster = SKEffectNode()
+        raster.shouldRasterize = true
+        for child in children {
+            child.removeFromParent()
+            raster.addChild(child)
+        }
+        addChild(raster)
     }
 
     required init?(coder aDecoder: NSCoder) { return nil }
