@@ -4,7 +4,7 @@
   "supportUrl": "https://platuk.github.io/cuptower/support.html",
   "marketingUrl": "https://platuk.github.io/cuptower/",
   "primaryCategory": "GAMES",
-  "subcategories": ["GAMES_ARCADE", "GAMES_ACTION"],
+  "subcategories": ["GAMES_ACTION", "GAMES_CASUAL"],
   "locales": {
     "en-US": {
       "name": "CupTower: Trophy Climb",
