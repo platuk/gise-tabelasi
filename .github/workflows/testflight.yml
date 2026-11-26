@@ -65,6 +65,13 @@ jobs:
           chmod 600 "$KEY_PATH"
           echo "KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
 
+      # Her makine sıfırdan açıldığı için eski sertifikaların anahtarları kayıp; sınır dolmasın diye iptal edilir.
+      - name: Eski imza sertifikalarını iptal et
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet pyjwt cryptography
+          "$RUNNER_TEMP/venv/bin/python" tools/revoke-ci-certs.py
+
       - name: Arşivle (imzalı)
         working-directory: ios
         run: |
