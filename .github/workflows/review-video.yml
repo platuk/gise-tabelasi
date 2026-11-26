@@ -1,0 +1,72 @@
+# App Review ekibine özel tanıtım videosu.
+#  "reviewvideo-*" etiketi: videoyu kaydeder ve "review-video" dalına koyar (izlemek için).
+#  "reviewupload-*" etiketi: o daldaki videoyu App Store Connect > App Review Information > Attachment'a yükler.
+name: İnceleme videosu
+
+on:
+  push:
+    tags:
+      - "reviewvideo-*"
+      - "reviewupload-*"
+
+permissions:
+  contents: write
+
+jobs:
+  record:
+    if: startsWith(github.ref_name, 'reviewvideo-')
+    name: Videoyu kaydet
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - name: Araçları kur ve projeyi üret
+        working-directory: ios
+        run: |
+          brew install xcodegen ffmpeg
+          xcodegen generate
+      - name: Kaydet ve birleştir
+        run: bash tools/review-video.sh "$RUNNER_TEMP/video"
+      - name: Videoyu sakla
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: review-video
+          path: ${{ runner.temp }}/video
+      - name: Videoyu "review-video" dalına koy
+        run: |
+          dir="$RUNNER_TEMP/branch"
+          mkdir -p "$dir"
+          cp "$RUNNER_TEMP/video/CupTower-review-demo.mp4" "$dir/"
+          cd "$dir"
+          git init -q -b review-video
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -A
+          git commit -q -m "İnceleme videosu: ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" review-video
+
+  upload:
+    if: startsWith(github.ref_name, 'reviewupload-')
+    name: App Store Connect'e yükle
+    runs-on: ubuntu-latest
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/checkout@v5
+        with:
+          ref: review-video
+          path: video
+      - name: Yükle
+        run: |
+          python3 -m pip install --quiet pyjwt cryptography
+          KEY_PATH="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
+          printf '%s\n' "$ASC_KEY_P8" > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          KEY_PATH="$KEY_PATH" python3 tools/asc-review-attachment.py video/CupTower-review-demo.mp4
+      - name: API anahtarını sil
+        if: always()
+        run: rm -f "$RUNNER_TEMP"/AuthKey_*.p8

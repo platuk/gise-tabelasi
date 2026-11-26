@@ -159,7 +159,7 @@ struct RootView: View {
         case "climb3": demo(floor: 4_330, .mirnav)
         case "characters": showingCharacters = true
         case "bosses": showingBosses = true
-        case "settings": showingSettings = true
+        case "settings", "settingsAbout": showingSettings = true
         case "help": showingHelp = true
         default:
             if name.hasPrefix("boss"), let index = Int(name.dropFirst(4)), let kind = BossKind(rawValue: index) {

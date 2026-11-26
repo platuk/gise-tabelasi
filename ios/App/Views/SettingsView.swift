@@ -17,6 +17,7 @@ struct SettingsView: View {
     var body: some View {
         ZStack {
             Theme.paper.ignoresSafeArea()
+            ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     HStack {
@@ -79,10 +80,21 @@ struct SettingsView: View {
                             Label("settings.supportLink", systemImage: "questionmark.circle").font(Theme.title(16))
                         }
                     }
+                    .id("about")
                 }
                 .foregroundStyle(Theme.ink)
                 .tint(Theme.marquee)
                 .padding(24)
+            }
+            #if DEBUG
+            // İnceleme videosu (tools/review-video.sh): "settingsAbout" sahnesi Hakkında bölümüne kayar.
+            .onAppear {
+                guard UserDefaults.standard.string(forKey: "screenshot") == "settingsAbout" else { return }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    withAnimation(.easeInOut(duration: 1.2)) { proxy.scrollTo("about", anchor: .bottom) }
+                }
+            }
+            #endif
             }
         }
         .onChange(of: musicVolume) { _, _ in SoundEngine.shared.applySettings() }
