@@ -100,7 +100,7 @@ struct SettingsView: View {
             .onAppear {
                 guard UserDefaults.standard.string(forKey: "screenshot") == "settingsAbout" else { return }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                    withAnimation(.easeInOut(duration: 1.2)) { proxy.scrollTo("about", anchor: .bottom) }
+                    withAnimation(.easeInOut(duration: 1.2)) { proxy.scrollTo("about", anchor: .center) }
                 }
             }
             #endif
