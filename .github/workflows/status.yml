@@ -1,0 +1,27 @@
+# App Store inceleme durumunu okur (hiçbir şeyi değiştirmez). "status-*" etiketiyle başlar.
+name: App Store durumu
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "status-*"
+
+jobs:
+  status:
+    name: Durum
+    runs-on: ubuntu-latest
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Durumu oku
+        run: |
+          python3 -m pip install --quiet pyjwt cryptography
+          KEY_PATH="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
+          printf '%s\n' "$ASC_KEY_P8" > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          KEY_PATH="$KEY_PATH" python3 tools/asc-status.py | tee "$GITHUB_STEP_SUMMARY"
+          rm -f "$KEY_PATH"
